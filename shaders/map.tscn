@@ -1,4 +1,4 @@
-[gd_scene load_steps=19 format=4 uid="uid://bpakul6lh24io"]
+[gd_scene load_steps=20 format=4 uid="uid://bpakul6lh24io"]
 
 [ext_resource type="Texture2D" uid="uid://dsxlme123oat5" path="res://textures/tile1.png" id="1_1p6ve"]
 [ext_resource type="Material" uid="uid://bm821f7bpueel" path="res://shaders/triplanar.tres" id="1_8ig4m"]
@@ -8,6 +8,7 @@
 [ext_resource type="Texture2D" uid="uid://cecqntip480yv" path="res://textures/flesh1.png" id="3_kb3md"]
 [ext_resource type="Texture2D" uid="uid://cu7h1roc5ntsn" path="res://textures/texture2-1.png" id="4_a3y4u"]
 [ext_resource type="Texture2D" uid="uid://chhnqcptb3vc4" path="res://textures/textureUI.png" id="5_vpu2j"]
+[ext_resource type="Texture2D" uid="uid://badoevrwvb8da" path="res://textures/hand1.png" id="9_a3y4u"]
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_278p7"]
 albedo_texture = ExtResource("1_1p6ve")
@@ -118,14 +119,6 @@ surface_material_override/4 = ExtResource("1_8ig4m")
 [node name="CollisionShape3D" type="CollisionShape3D" parent="TBLoader/Default Layer/entity_0_geometry_col"]
 shape = SubResource("ConcavePolygonShape3D_uu6d1")
 
-[node name="SubViewport" type="SubViewport" parent="."]
-
-[node name="Sprite3D" type="Sprite3D" parent="SubViewport"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -1.6162536)
-layers = 2
-texture_filter = 0
-texture = ExtResource("1_qgk8l")
-
 [node name="player" type="CharacterBody3D" parent="."]
 unique_name_in_owner = true
 physics_interpolation_mode = 1
@@ -139,10 +132,59 @@ mesh = SubResource("CapsuleMesh_1p6ve")
 
 [node name="camerapivot" type="Node3D" parent="player"]
 unique_name_in_owner = true
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 0)
 
-[node name="MainCamera" type="Camera3D" parent="player/camerapivot"]
+[node name="maincamera" type="Camera3D" parent="player/camerapivot"]
 unique_name_in_owner = true
 cull_mask = 1048573
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
 environment = SubResource("Environment_1p6ve")
+
+[node name="canvas" type="Control" parent="."]
+unique_name_in_owner = true
+layout_mode = 3
+anchors_preset = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="SubViewportContainer" type="SubViewportContainer" parent="canvas"]
+layout_mode = 1
+offset_right = 1152.0
+offset_bottom = 648.0
+mouse_filter = 2
+stretch = true
+
+[node name="uiviewport" type="SubViewport" parent="canvas/SubViewportContainer"]
+unique_name_in_owner = true
+transparent_bg = true
+handle_input_locally = false
+size = Vector2i(1152, 648)
+
+[node name="Camera3D" type="Camera3D" parent="canvas/SubViewportContainer/uiviewport"]
+cull_mask = 1047554
+
+[node name="crosshair" type="Sprite3D" parent="canvas/SubViewportContainer/uiviewport/Camera3D"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -3.6162536)
+layers = 2
+texture_filter = 0
+texture = ExtResource("1_qgk8l")
+
+[node name="lefthand" type="Sprite3D" parent="canvas/SubViewportContainer/uiviewport/Camera3D"]
+unique_name_in_owner = true
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 0, -4)
+layers = 2
+flip_h = true
+texture_filter = 0
+texture = ExtResource("9_a3y4u")
+
+[node name="righthand" type="Sprite3D" parent="canvas/SubViewportContainer/uiviewport/Camera3D"]
+unique_name_in_owner = true
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 0, -4)
+layers = 2
+texture_filter = 0
+texture = ExtResource("9_a3y4u")
+
+[node name="OmniLight3D" type="OmniLight3D" parent="canvas/SubViewportContainer/uiviewport"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -3)
+layers = 2

@@ -2,8 +2,8 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bechr6yylv76o"
-path.s3tc="res://.godot/imported/cursor1.png-75810ff963ddd01d6700fd7e10564c2d.s3tc.ctex"
+uid="uid://badoevrwvb8da"
+path.s3tc="res://.godot/imported/hand1.png-c0e0eff12ce677746b80e0e63359b004.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
 "vram_texture": true
@@ -11,8 +11,8 @@ metadata={
 
 [deps]
 
-source_file="res://textures/cursor1.png"
-dest_files=["res://.godot/imported/cursor1.png-75810ff963ddd01d6700fd7e10564c2d.s3tc.ctex"]
+source_file="res://textures/hand1.png"
+dest_files=["res://.godot/imported/hand1.png-c0e0eff12ce677746b80e0e63359b004.s3tc.ctex"]
 
 [params]
 
