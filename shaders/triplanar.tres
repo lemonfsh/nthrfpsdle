@@ -1,0 +1,21 @@
+[gd_resource type="ShaderMaterial" load_steps=5 format=3 uid="uid://bm821f7bpueel"]
+
+[ext_resource type="Shader" uid="uid://cmawrr6mhqfab" path="res://shaders/triplanar.gdshader" id="1_2qqbl"]
+[ext_resource type="Texture2D" uid="uid://cecqntip480yv" path="res://textures/flesh1.png" id="2_1jt1f"]
+[ext_resource type="Texture2D" uid="uid://cu7h1roc5ntsn" path="res://textures/texture2-1.png" id="2_yua5j"]
+[ext_resource type="Texture2D" uid="uid://be2l8deko72p7" path="res://textures/tile9.png" id="4_1jt1f"]
+
+[resource]
+render_priority = 0
+shader = ExtResource("1_2qqbl")
+shader_parameter/enable_normal_map = false
+shader_parameter/enable_roughness = false
+shader_parameter/roughness = 1.0
+shader_parameter/blend_sharpness = 25.42
+shader_parameter/global_scale = 0.05
+shader_parameter/x_albedo = ExtResource("2_1jt1f")
+shader_parameter/x_scale = 1.0
+shader_parameter/y_albedo = ExtResource("2_yua5j")
+shader_parameter/y_scale = 1.0
+shader_parameter/z_albedo = ExtResource("4_1jt1f")
+shader_parameter/z_scale = 1.0
