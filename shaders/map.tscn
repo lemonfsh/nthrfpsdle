@@ -165,14 +165,14 @@ size = Vector2i(1152, 648)
 cull_mask = 1047554
 
 [node name="crosshair" type="Sprite3D" parent="canvas/SubViewportContainer/uiviewport/Camera3D"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -3.6162536)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -8)
 layers = 2
 texture_filter = 0
 texture = ExtResource("1_qgk8l")
 
 [node name="lefthand" type="Sprite3D" parent="canvas/SubViewportContainer/uiviewport/Camera3D"]
 unique_name_in_owner = true
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 0, -4)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, -2, -4)
 layers = 2
 flip_h = true
 texture_filter = 0
@@ -180,7 +180,7 @@ texture = ExtResource("9_a3y4u")
 
 [node name="righthand" type="Sprite3D" parent="canvas/SubViewportContainer/uiviewport/Camera3D"]
 unique_name_in_owner = true
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 0, -4)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, -2, -4)
 layers = 2
 texture_filter = 0
 texture = ExtResource("9_a3y4u")
