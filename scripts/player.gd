@@ -4,8 +4,7 @@ extends CharacterBody3D
 @onready var maincamera : Camera3D = %maincamera
 @onready var camerapivot : Node3D = %camerapivot
 @onready var canvas = %canvas
-@onready var uiviewport : SubViewport = %ui
-@onready var uitexture : TextureRect = %texture
+@onready var debugtext : Label3D = %debug
 
 @onready var lefthand : Sprite3D = %lefthand
 @onready var righthand : Sprite3D = %righthand
@@ -18,7 +17,6 @@ var sens : Vector2 = Vector2(1.0, 1.0)
 
 func _ready() -> void:
 	wall_min_slide_angle = .01
-	print(LHdefaultpos, " asd ", RHdefaultpos)
 	
 	
 	
@@ -37,8 +35,8 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 var maxspeed := 12.0
-var accel := 4.0
-var slowaccelrate = 5
+var accel := 2.0
+var slowaccelrate = 2
 
 var gravity := 2.0
 var jumpforce := 30.0
@@ -52,7 +50,6 @@ func _physics_process(delta: float) -> void:
 	
 	inputdir = Input.get_vector("left", "right", "up", "down");
 	inputdir = inputdir.normalized()
-	inputdir.x *= 1.1
 	
 	do_camera_tilt()
 	
@@ -68,6 +65,8 @@ func _physics_process(delta: float) -> void:
 		friction *= .98
 	else:
 		friction *= .95
+	if abs(inputdir.x) > .5:
+		friction *= 1.005
 	friction = min(friction, 1.0)
 	v *= friction
 	
@@ -80,21 +79,44 @@ func _physics_process(delta: float) -> void:
 	v.y -= gravity
 	velocity = v;
 	
+	
 	move_and_slide()
 	
+	debugtext.text = "%0.2f" % sqrt( pow(velocity.x, 2) + pow(velocity.z, 2) ) 
 	
 	pstate.PhysUpdate(self)
 	pstate.AnimateHands(self)
 	var lerpvalue = .04
 	righthand.position = lerp(righthand.position, RHtargetpos, lerpvalue)
 	lefthand.position = lerp(lefthand.position, LHtargetpos, lerpvalue)
+	
+	interact_items()
 
 func do_camera_tilt() -> void:
 	camerapivot.rotation.z = lerpf(camerapivot.rotation.z, -1.0 * inputdir.x * .05, .2)
 	
-	
+func interact_items() -> void:
+	var raylength := 10
+	var space_state = get_world_3d().direct_space_state
+	var mousepos = get_viewport().get_mouse_position()
+
+	var origin = maincamera.project_ray_origin(mousepos)
+	var end = origin + maincamera.project_ray_normal(mousepos) * raylength
+	var query = PhysicsRayQueryParameters3D.create(origin, end)
+	query.collide_with_areas = true
+
+	var result = space_state.intersect_ray(query)
+	var col = result.get("collider")
+	if col is Item:
+		print("yes")
 		
 @onready var pstate : PlayerState = Neutral.new();
+	
+	
+	
+	
+	
+	
 	
 	
 @abstract class PlayerState:
@@ -102,10 +124,12 @@ func do_camera_tilt() -> void:
 	var xvelocitystep := 1
 	@abstract func PhysUpdate(p : player) -> void
 	@abstract func AnimateHands(p : player) -> void
+	var debugstate := false
 	
 class Neutral extends PlayerState:
 	func PhysUpdate(p : player) -> void:
-		print("neutral")
+		if debugstate:
+			print("neutral")
 		if p.velocity.y > yvelocitystep:
 			p.pstate = Ascending.new()
 		elif p.velocity.y < yvelocitystep:
@@ -119,7 +143,8 @@ class Neutral extends PlayerState:
 		
 class Moving extends PlayerState:
 	func PhysUpdate(p : player) -> void:
-		print("moving")
+		if debugstate:
+			print("moving")
 		if p.velocity.y > yvelocitystep:
 			p.pstate = Ascending.new()
 		elif p.velocity.y < yvelocitystep:
@@ -137,7 +162,8 @@ class Moving extends PlayerState:
 		
 class Ascending extends PlayerState:
 	func PhysUpdate(p : player) -> void:
-		print("asc")
+		if debugstate:
+			print("asc")
 		if p.velocity.y <= 0.0:
 			p.pstate = Neutral.new()
 	func AnimateHands(p : player) -> void:
@@ -151,7 +177,8 @@ class Ascending extends PlayerState:
 		
 class Falling extends PlayerState:
 	func PhysUpdate(p : player) -> void:
-		print("fall")
+		if debugstate:
+			print("fall")
 		if p.velocity.y >= 0.0:
 			p.pstate = Neutral.new()
 	func AnimateHands(p : player) -> void:
