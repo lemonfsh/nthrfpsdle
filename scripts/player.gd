@@ -42,14 +42,35 @@ var gravity := 2.0
 var jumpforce := 30.0
 
 var jumptimer := -1.0
+var hititemtimer := -1.0
+
 var inputdir : Vector2
+var lmbpressed : float
+var rmbpressed : float
+var Epressed : float
+var Qpressed : float
+
+
+func take_input(delta : float) -> void:
+	var inputbuffer : float = 2.0
+	lmbpressed = float(Input.is_action_just_pressed("lmb"))
+	rmbpressed = float(Input.is_action_just_pressed("rmb"))
+	lmbpressed -= delta * inputbuffer
+	rmbpressed -= delta * inputbuffer
+	Epressed = float(Input.is_action_just_pressed("E"))
+	Qpressed = float(Input.is_action_just_pressed("Q"))
+	Epressed -= delta * inputbuffer
+	Qpressed -= delta * inputbuffer
+	inputdir = Input.get_vector("left", "right", "up", "down");
+	inputdir = inputdir.normalized()
+	
 func _physics_process(delta: float) -> void:
 	
+	take_input(delta)
 	
 	var v := velocity
 	
-	inputdir = Input.get_vector("left", "right", "up", "down");
-	inputdir = inputdir.normalized()
+	
 	
 	do_camera_tilt()
 	
@@ -82,7 +103,18 @@ func _physics_process(delta: float) -> void:
 	
 	move_and_slide()
 	
-	debugtext.text = "%0.2f" % sqrt( pow(velocity.x, 2) + pow(velocity.z, 2) ) 
+	hititemtimer -= delta
+	for i in get_slide_collision_count():
+		var col = get_slide_collision(i).get_collider()
+		if col is RigidBody3D and hititemtimer < 0.0:
+			hititemtimer = .3
+			var normal = -1.0 * get_slide_collision(i).get_normal()
+			var forcevector : Vector3 = Vector3(0, 3.0, 0) + normal * 10.0
+			col.apply_central_impulse(forcevector)
+			velocity += forcevector * -2.0
+			
+	
+	debugtext.text = "%0.2f" % sqrt( pow(velocity.x, 2) + pow(velocity.z, 2) ) + "\n" + str(Engine.get_frames_per_second())
 	
 	pstate.PhysUpdate(self)
 	pstate.AnimateHands(self)
@@ -108,7 +140,8 @@ func interact_items() -> void:
 	var result = space_state.intersect_ray(query)
 	var col = result.get("collider")
 	if col is Item:
-		print("yes")
+		var colasitem : Item = col
+		
 		
 @onready var pstate : PlayerState = Neutral.new();
 	
