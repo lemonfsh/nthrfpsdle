@@ -5,10 +5,11 @@ var itemdata : ItemData
 
 @onready var sprite3d : Sprite3D = get_node("sprite")
 @onready var playe : CharacterBody3D = %player
-
+@onready var map = %map
+@onready var uicamera = %uicamera
 var state : ItemState
 func _ready() -> void:
-	state = Neutral.new()
+	state = Neutral.new(self)
 	itemdata = Stick.new()
 	sprite3d.texture = itemdata.image
 
@@ -20,16 +21,38 @@ func _process(delta: float) -> void:
 
 @abstract class ItemState:
 	var name : String
+	var localvar := 0.0
 	@abstract func on_process(delta : float, item : Item) -> void
 
+
 class Neutral extends ItemState:
+	func _init(item : Item) -> void:
+		item.sprite3d.look_at(item.playe.position)
+		item.get_parent().remove_child(item)
+		item.map.add_child(item)
+		item.sprite3d.set_layer_mask_value(2, false)
+		item.sprite3d.set_layer_mask_value(1, true)
+		
+	@warning_ignore("unused_parameter")
 	func on_process(delta : float, item : Item) -> void:
 		item.sprite3d.look_at(item.playe.position)
 		
+		
 class Held extends ItemState:
-	var hand : int # 0 = left, 1 = right 
+	func _init(item : Item, localv) -> void:
+		localvar = localv
+		item.get_parent().remove_child(item)
+		item.uicamera.add_child(item)
+		item.sprite3d.set_layer_mask_value(2, true)
+		item.sprite3d.set_layer_mask_value(1, false)
+		item.position = Vector3(localvar, -2, -4)
+		item.sprite3d.rotation = Vector3(0, 0, 0)
+		item.rotation = Vector3(0, 0, 0)
+	@warning_ignore("unused_parameter")
 	func on_process(delta : float, item : Item) -> void:
-		print("yes")
+		item.position = Vector3(localvar, -2, -4)
+		
+		
 		
 		
 

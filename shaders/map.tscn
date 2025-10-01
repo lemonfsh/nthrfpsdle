@@ -1,8 +1,9 @@
-[gd_scene load_steps=21 format=4 uid="uid://bpakul6lh24io"]
+[gd_scene load_steps=22 format=4 uid="uid://bpakul6lh24io"]
 
 [ext_resource type="Texture2D" uid="uid://dsxlme123oat5" path="res://textures/tile1.png" id="1_1p6ve"]
 [ext_resource type="Material" uid="uid://bm821f7bpueel" path="res://shaders/triplanar.tres" id="1_8ig4m"]
 [ext_resource type="Texture2D" uid="uid://dtego8n7xin7x" path="res://textures/crosshair.png" id="1_qgk8l"]
+[ext_resource type="Script" uid="uid://b2048mmk84uyx" path="res://scripts/events.gd" id="1_sod6b"]
 [ext_resource type="Script" uid="uid://b1af1lnxnevv2" path="res://scripts/player.gd" id="2_1p6ve"]
 [ext_resource type="Texture2D" uid="uid://csg3pf6vrk6tw" path="res://textures/texture.png" id="2_278p7"]
 [ext_resource type="Texture2D" uid="uid://cecqntip480yv" path="res://textures/flesh1.png" id="3_kb3md"]
@@ -100,14 +101,20 @@ data = PackedVector3Array(-37.7263, 3.7761, -99.842094, -37.7263, 1.7760999, -99
 
 [node name="map" type="Node"]
 
+[node name="director" type="Node" parent="."]
+
+[node name="events" type="Node" parent="director"]
+script = ExtResource("1_sod6b")
+
 [node name="TBLoader" type="TBLoader" parent="."]
 map_resource = "uid://bghs2g6wnljyy"
 option_filter_nearest = true
 
-[node name="Default Layer" type="Node3D" parent="TBLoader"]
+[node name="map" type="Node3D" parent="TBLoader"]
+unique_name_in_owner = true
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 27.72631, -18.776108, 1.8421053)
 
-[node name="entity_0_geometry" type="MeshInstance3D" parent="TBLoader/Default Layer"]
+[node name="entity_0_geometry" type="MeshInstance3D" parent="TBLoader/map"]
 mesh = SubResource("ArrayMesh_fcysd")
 surface_material_override/0 = ExtResource("1_8ig4m")
 surface_material_override/1 = ExtResource("1_8ig4m")
@@ -115,13 +122,13 @@ surface_material_override/2 = ExtResource("1_8ig4m")
 surface_material_override/3 = ExtResource("1_8ig4m")
 surface_material_override/4 = ExtResource("1_8ig4m")
 
-[node name="entity_0_geometry_col" type="StaticBody3D" parent="TBLoader/Default Layer"]
+[node name="entity_0_geometry_col" type="StaticBody3D" parent="TBLoader/map"]
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="TBLoader/Default Layer/entity_0_geometry_col"]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="TBLoader/map/entity_0_geometry_col"]
 shape = SubResource("ConcavePolygonShape3D_uu6d1")
 
-[node name="item" parent="TBLoader/Default Layer" instance=ExtResource("7_vpu2j")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -13, 16, -13.999999)
+[node name="item" parent="TBLoader/map" instance=ExtResource("7_vpu2j")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -14, 15, 0)
 collision_layer = 4
 linear_damp = 3.0
 angular_damp = 3.0
@@ -171,16 +178,17 @@ handle_input_locally = false
 size = Vector2i(1152, 648)
 render_target_update_mode = 4
 
-[node name="Camera3D" type="Camera3D" parent="canvas/SubViewportContainer/uiviewport"]
+[node name="uicamera" type="Camera3D" parent="canvas/SubViewportContainer/uiviewport"]
+unique_name_in_owner = true
 cull_mask = 1047554
 
-[node name="crosshair" type="Sprite3D" parent="canvas/SubViewportContainer/uiviewport/Camera3D"]
+[node name="crosshair" type="Sprite3D" parent="canvas/SubViewportContainer/uiviewport/uicamera"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -8)
 layers = 2
 texture_filter = 0
 texture = ExtResource("1_qgk8l")
 
-[node name="lefthand" type="Sprite3D" parent="canvas/SubViewportContainer/uiviewport/Camera3D"]
+[node name="lefthand" type="Sprite3D" parent="canvas/SubViewportContainer/uiviewport/uicamera"]
 unique_name_in_owner = true
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, -2, -4)
 layers = 2
@@ -188,14 +196,14 @@ flip_h = true
 texture_filter = 0
 texture = ExtResource("9_a3y4u")
 
-[node name="righthand" type="Sprite3D" parent="canvas/SubViewportContainer/uiviewport/Camera3D"]
+[node name="righthand" type="Sprite3D" parent="canvas/SubViewportContainer/uiviewport/uicamera"]
 unique_name_in_owner = true
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, -2, -4)
 layers = 2
 texture_filter = 0
 texture = ExtResource("9_a3y4u")
 
-[node name="debug" type="Label3D" parent="canvas/SubViewportContainer/uiviewport/Camera3D"]
+[node name="debug" type="Label3D" parent="canvas/SubViewportContainer/uiviewport/uicamera"]
 unique_name_in_owner = true
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1, -5)
 layers = 2
