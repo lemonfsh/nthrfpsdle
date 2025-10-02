@@ -14,7 +14,7 @@ var LHtargetpos : Vector3
 var RHtargetpos : Vector3
 @onready var hand1 : Texture2D = preload("res://textures/hand1.png")
 @onready var hand2 : Texture2D = preload("res://textures/hand2.png")
-
+@onready var hand3 : Texture2D = preload("res://textures/hand3.png")
 
 
 var sens : Vector2 = Vector2(1.0, 1.0)
@@ -80,8 +80,6 @@ func _physics_process(delta: float) -> void:
 	
 	var v := velocity
 	
-	
-	print(Qpressed)
 	do_camera_tilt()
 	
 	var wishdir := (camerapivot.transform.basis * Vector3(inputdir.x, 0, inputdir.y)).normalized()
@@ -118,11 +116,13 @@ func _physics_process(delta: float) -> void:
 	velocity = v;
 	
 	
+	
 	move_and_slide()
 	
 	hititemtimer -= delta
 	for i in get_slide_collision_count():
 		var col = get_slide_collision(i).get_collider()
+		
 		if col is RigidBody3D and hititemtimer < 0.0:
 			hititemtimer = .3
 			var normal = -1.0 * get_slide_collision(i).get_normal()
@@ -142,65 +142,170 @@ func _physics_process(delta: float) -> void:
 	interact_items()
 	held_items()
 
+
 func do_camera_tilt() -> void:
 	camerapivot.rotation.z = lerpf(camerapivot.rotation.z, -1.0 * inputdir.x * .05, .2)
 	
 var LHitem : Item
 var RHitem : Item
 
+@onready var topleft : Sprite3D = %topleft
+@onready var topright : Sprite3D = %topright
+@onready var bottomleft : Sprite3D = %bottomleft
+@onready var bottomright : Sprite3D = %bottomright
 func interact_items() -> void:
 	
 	var pitch = maincamera.rotation.x
 	var yaw = camerapivot.rotation.y
 	var facing = Vector3(cos(pitch) * sin(yaw),-sin(pitch), cos(pitch) * cos(yaw)).normalized()
-	if Epressed >= 1.0 and LHitem:
+	if Qpressed >= 1.0 and LHitem:
 		LHitem.state = LHitem.Neutral.new(LHitem)
-		LHitem.global_position = global_position + facing * -4
+		var r = cameraraycast(5)
+		var pos = r.get("position")
+		var dist : float
+		if !pos:
+			dist = 4.0
+		else:
+			dist = global_position.distance_to(pos)
+		LHitem.global_position = global_position + facing * -.8 * dist + Vector3(0, .8, 0) 
 		LHitem = null
 		return
-	if Qpressed >= 1.0 and RHitem:
+	if Epressed >= 1.0 and RHitem:
 		RHitem.state = RHitem.Neutral.new(RHitem)
-		RHitem.global_position = global_position + facing * -4
+		var r = cameraraycast(5)
+		var pos = r.get("position")
+		var dist : float
+		if !pos:
+			dist = 4.0
+		else:
+			dist = global_position.distance_to(pos)
+		RHitem.global_position = global_position + facing * -.8 * dist + Vector3(0, .8, 0)
 		RHitem = null
 		return
 			
 	
-	var raylength := 10
-	var space_state = get_world_3d().direct_space_state
-	var mousepos = get_viewport().get_mouse_position()
-
-	var origin = maincamera.project_ray_origin(mousepos)
-	var end = origin + maincamera.project_ray_normal(mousepos) * raylength
-	var query = PhysicsRayQueryParameters3D.create(origin, end)
-	query.collide_with_areas = true
-
-	var result = space_state.intersect_ray(query)
+	var result = cameraraycast(10)
 	var col = result.get("collider")
 	if col is Item:
+		var shapeobj : CollisionShape3D = col.get_node("shape")
+		var focus : Array = focus_on_bounds(shapeobj, maincamera)
+		topleft.global_position = focus[0]
+		topright.global_position = focus[1]
+		bottomleft.global_position = focus[2]
+		bottomright.global_position = focus[3]
 		var colasitem : Item = col
-		if Epressed >= 1.0 and !LHitem:
+		if Qpressed >= 1.0 and !LHitem:
 			LHitem = colasitem
-			LHitem.state = LHitem.Held.new(LHitem, 1)
+			LHitem.state = LHitem.Held.new(LHitem, -1, lefthand)
 			return
-		if Qpressed >= 1.0 and !RHitem:
+		if Epressed >= 1.0 and !RHitem:
 			RHitem = colasitem
-			RHitem.state = RHitem.Held.new(RHitem, -1)
+			RHitem.state = RHitem.Held.new(RHitem, 1, righthand)
 			return
-		
-			
+		return
+	var outofview : Vector3 = Vector3(0, 99, 0)
+	topleft.global_position = outofview
+	topright.global_position = outofview
+	bottomleft.global_position = outofview
+	bottomright.global_position = outofview
+	
+	if lmbpressed >= 1.0 and LHitem:
+		LHitem.itemdata.on_use(LHitem)
+	if rmbpressed >= 1.0 and RHitem:
+		RHitem.itemdata.on_use(RHitem)
 
 func held_items() -> void:
-	if Qpressed > 0.0:
-		lefthand.texture = hand2
+	if LHitem:
+		lefthand.texture = hand3
 	else:
-		lefthand.texture = hand1
-		
-	if Epressed > 0.0:
-		righthand.texture = hand2
+		if Qpressed > 0.0:
+			lefthand.texture = hand2
+		else:
+			lefthand.texture = hand1
+	if RHitem:
+		righthand.texture = hand3
 	else:
-		righthand.texture = hand1
+		if Epressed > 0.0:
+			righthand.texture = hand2
+		else:
+			righthand.texture = hand1
 		
 		
+func focus_on_bounds(collision_shape: CollisionShape3D, camera: Camera3D) -> Array:
+	if not collision_shape or not camera:
+		push_error("Missing collision_shape or camera")
+		return []
+
+	var shape = collision_shape.shape
+	if not shape or not (shape is BoxShape3D):
+		push_error("focus_on_box_shape: supplied CollisionShape3D does not contain a BoxShape3D")
+		return []
+
+	var ext = shape.extents   
+
+	var local_corners = [
+		Vector3( ext.x,  ext.y,  ext.z),
+		Vector3( ext.x,  ext.y, -ext.z),
+		Vector3( ext.x, -ext.y,  ext.z),
+		Vector3( ext.x, -ext.y, -ext.z),
+		Vector3(-ext.x,  ext.y,  ext.z),
+		Vector3(-ext.x,  ext.y, -ext.z),
+		Vector3(-ext.x, -ext.y,  ext.z),
+		Vector3(-ext.x, -ext.y, -ext.z),
+	]
+
+	var world_corners: Array = []
+	for lc in local_corners:
+		world_corners.append(collision_shape.global_transform * lc)
+
+	var screen_points: Array = []
+	for wc in world_corners:
+		if camera.is_position_behind(wc):
+			screen_points.append(null) 
+		else:
+			screen_points.append(camera.unproject_position(wc))
+
+	var valid := []
+	for sp in screen_points:
+		if sp != null:
+			valid.append(sp)
+
+	if valid.is_empty():
+		return []
+
+	var min_x = valid[0].x
+	var max_x = min_x
+	var min_y = valid[0].y
+	var max_y = min_y
+	for p in valid:
+		min_x = min(min_x, p.x)
+		max_x = max(max_x, p.x)
+		min_y = min(min_y, p.y)
+		max_y = max(max_y, p.y)
+
+	var top_left     = Vector2(min_x, min_y)
+	var top_right    = Vector2(max_x, min_y)
+	var bottom_right = Vector2(max_x, max_y)
+	var bottom_left  = Vector2(min_x, max_y)
+	
+	var realsc = []
+	for sc in [top_left, top_right, bottom_left, bottom_right]:
+		realsc.append(camera.project_position(sc, .4))
+		
+	return realsc
+
+func cameraraycast(length : float) -> Dictionary:
+	var space_state = get_world_3d().direct_space_state
+	var mousepos = get_viewport().get_mouse_position()
+	var origin = maincamera.project_ray_origin(mousepos)
+	var end = origin + maincamera.project_ray_normal(mousepos) * length
+	var query = PhysicsRayQueryParameters3D.create(origin, end)
+	query.collide_with_areas = true
+	var result = space_state.intersect_ray(query)
+	return result
+	
+	
+	
 @onready var pstate : PlayerState = Neutral.new();
 	
 	
@@ -258,8 +363,8 @@ class Ascending extends PlayerState:
 		if p.velocity.y <= 0.0:
 			p.pstate = Neutral.new()
 	func AnimateHands(p : player) -> void:
-		var lhadd := Vector3(0, .2, .2)
-		var rhadd := Vector3(0, .2, .2)
+		var lhadd := Vector3(0, .1, .2)
+		var rhadd := Vector3(0, .1, .2)
 		lhadd.x += p.inputdir.x * .3
 		rhadd.x += p.inputdir.x * .3
 		p.LHtargetpos = p.LHdefaultpos + lhadd

@@ -27,30 +27,32 @@ func _process(delta: float) -> void:
 
 class Neutral extends ItemState:
 	func _init(item : Item) -> void:
-		item.sprite3d.look_at(item.playe.position)
 		item.get_parent().remove_child(item)
 		item.map.add_child(item)
 		item.sprite3d.set_layer_mask_value(2, false)
 		item.sprite3d.set_layer_mask_value(1, true)
-		
+		item.sprite3d.pixel_size = .01
+		item.sprite3d.flip_h = false
 	@warning_ignore("unused_parameter")
 	func on_process(delta : float, item : Item) -> void:
-		item.sprite3d.look_at(item.playe.position)
+		return
 		
 		
 class Held extends ItemState:
-	func _init(item : Item, localv) -> void:
+	func _init(item : Item, localv, hand) -> void:
 		localvar = localv
 		item.get_parent().remove_child(item)
-		item.uicamera.add_child(item)
+		hand.add_child(item)
 		item.sprite3d.set_layer_mask_value(2, true)
 		item.sprite3d.set_layer_mask_value(1, false)
-		item.position = Vector3(localvar, -2, -4)
-		item.sprite3d.rotation = Vector3(0, 0, 0)
-		item.rotation = Vector3(0, 0, 0)
+		item.position = Vector3(localvar * 1.8, -.6, -4)
+		item.sprite3d.pixel_size = .02
+		if localv < 0:
+			item.sprite3d.flip_h = true
 	@warning_ignore("unused_parameter")
 	func on_process(delta : float, item : Item) -> void:
-		item.position = Vector3(localvar, -2, -4)
+		item.position = Vector3(localvar * 1.8, -.6, -4)
+		
 		
 		
 		
@@ -62,8 +64,11 @@ class Held extends ItemState:
 	var image : Texture2D
 	func AssignImage() -> void:
 		image = load("res://textures/" + name + ".png")
+	@abstract func on_use(item : Item) -> void
 	
 class Stick extends ItemData:
 	func _init() -> void:
 		name = "stick"
 		AssignImage()
+	func on_use(item : Item) -> void:
+		print("used stick")

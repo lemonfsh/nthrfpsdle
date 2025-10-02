@@ -1,4 +1,4 @@
-[gd_scene load_steps=22 format=4 uid="uid://bpakul6lh24io"]
+[gd_scene load_steps=23 format=4 uid="uid://bpakul6lh24io"]
 
 [ext_resource type="Texture2D" uid="uid://dsxlme123oat5" path="res://textures/tile1.png" id="1_1p6ve"]
 [ext_resource type="Material" uid="uid://bm821f7bpueel" path="res://shaders/triplanar.tres" id="1_8ig4m"]
@@ -11,6 +11,7 @@
 [ext_resource type="Texture2D" uid="uid://chhnqcptb3vc4" path="res://textures/textureUI.png" id="5_vpu2j"]
 [ext_resource type="PackedScene" uid="uid://b1hof46k3ked7" path="res://prefabs/item.tscn" id="7_vpu2j"]
 [ext_resource type="Texture2D" uid="uid://badoevrwvb8da" path="res://textures/hand1.png" id="9_a3y4u"]
+[ext_resource type="Texture2D" uid="uid://ckh8jb8imgy40" path="res://textures/UIcorner.png" id="12_fcysd"]
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_278p7"]
 albedo_texture = ExtResource("1_1p6ve")
@@ -127,6 +128,12 @@ surface_material_override/4 = ExtResource("1_8ig4m")
 [node name="CollisionShape3D" type="CollisionShape3D" parent="TBLoader/map/entity_0_geometry_col"]
 shape = SubResource("ConcavePolygonShape3D_uu6d1")
 
+[node name="item2" parent="TBLoader/map" instance=ExtResource("7_vpu2j")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -28, 30, 0)
+collision_layer = 4
+linear_damp = 3.0
+angular_damp = 3.0
+
 [node name="item" parent="TBLoader/map" instance=ExtResource("7_vpu2j")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -14, 15, 0)
 collision_layer = 4
@@ -208,7 +215,47 @@ unique_name_in_owner = true
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1, -5)
 layers = 2
 pixel_size = 0.01
-text = "boner"
+text = "log"
+
+[node name="topright" type="Sprite3D" parent="canvas/SubViewportContainer/uiviewport/uicamera"]
+unique_name_in_owner = true
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -12)
+sorting_offset = -99.0
+flip_h = true
+flip_v = true
+pixel_size = 0.0003
+billboard = 1
+double_sided = false
+texture = ExtResource("12_fcysd")
+
+[node name="bottomleft" type="Sprite3D" parent="canvas/SubViewportContainer/uiviewport/uicamera"]
+unique_name_in_owner = true
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -33)
+sorting_offset = -99.0
+pixel_size = 0.0003
+billboard = 1
+double_sided = false
+texture = ExtResource("12_fcysd")
+
+[node name="bottomright" type="Sprite3D" parent="canvas/SubViewportContainer/uiviewport/uicamera"]
+unique_name_in_owner = true
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -24)
+sorting_offset = -99.0
+flip_h = true
+pixel_size = 0.0003
+billboard = 1
+double_sided = false
+texture = ExtResource("12_fcysd")
+
+[node name="topleft" type="Sprite3D" parent="canvas/SubViewportContainer/uiviewport/uicamera"]
+unique_name_in_owner = true
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -6)
+sorting_offset = -99.0
+flip_v = true
+pixel_size = 0.0003
+billboard = 1
+double_sided = false
+texture = ExtResource("12_fcysd")
 
 [node name="OmniLight3D" type="OmniLight3D" parent="canvas/SubViewportContainer/uiviewport"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -3)
