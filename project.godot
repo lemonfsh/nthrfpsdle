@@ -14,6 +14,10 @@ config/name="nthrfpsdle"
 run/main_scene="uid://bpakul6lh24io"
 config/features=PackedStringArray("4.5", "Forward Plus")
 
+[autoload]
+
+Event="*res://scripts/events.gd"
+
 [editor_plugins]
 
 enabled=PackedStringArray("res://addons/tbloader/plugin.cfg")

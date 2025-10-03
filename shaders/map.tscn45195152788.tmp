@@ -129,7 +129,7 @@ surface_material_override/4 = ExtResource("1_8ig4m")
 shape = SubResource("ConcavePolygonShape3D_uu6d1")
 
 [node name="item2" parent="TBLoader/map" instance=ExtResource("7_vpu2j")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -28, 15, 11)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -28, 30, 0)
 collision_layer = 4
 linear_damp = 3.0
 angular_damp = 3.0
@@ -141,12 +141,6 @@ collision_layer = 4
 linear_damp = 3.0
 angular_damp = 3.0
 interactable = false
-
-[node name="item3" parent="TBLoader/map" instance=ExtResource("7_vpu2j")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -38, 18, 0)
-collision_layer = 4
-linear_damp = 3.0
-angular_damp = 3.0
 
 [node name="player" type="CharacterBody3D" parent="."]
 unique_name_in_owner = true
@@ -235,7 +229,6 @@ flip_v = true
 pixel_size = 0.0003
 billboard = 1
 double_sided = false
-texture_filter = 0
 texture = ExtResource("12_fcysd")
 
 [node name="bottomleft" type="Sprite3D" parent="canvas/SubViewportContainer/uiviewport/uicamera"]
@@ -245,7 +238,6 @@ sorting_offset = -99.0
 pixel_size = 0.0003
 billboard = 1
 double_sided = false
-texture_filter = 0
 texture = ExtResource("12_fcysd")
 
 [node name="bottomright" type="Sprite3D" parent="canvas/SubViewportContainer/uiviewport/uicamera"]
@@ -256,7 +248,6 @@ flip_h = true
 pixel_size = 0.0003
 billboard = 1
 double_sided = false
-texture_filter = 0
 texture = ExtResource("12_fcysd")
 
 [node name="topleft" type="Sprite3D" parent="canvas/SubViewportContainer/uiviewport/uicamera"]
@@ -267,7 +258,6 @@ flip_v = true
 pixel_size = 0.0003
 billboard = 1
 double_sided = false
-texture_filter = 0
 texture = ExtResource("12_fcysd")
 
 [node name="OmniLight3D" type="OmniLight3D" parent="canvas/SubViewportContainer/uiviewport"]

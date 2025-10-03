@@ -1,10 +1,11 @@
-class_name player
+@warning_ignore_start("unused_parameter")
 extends CharacterBody3D
-
+class_name Player
 @onready var maincamera : Camera3D = %maincamera
 @onready var camerapivot : Node3D = %camerapivot
 @onready var canvas = %canvas
 @onready var debugtext : Label3D = %debug
+@onready var map = %map
 
 @onready var lefthand : Sprite3D = %lefthand
 @onready var righthand : Sprite3D = %righthand
@@ -25,8 +26,6 @@ var sens : Vector2 = Vector2(1.0, 1.0)
 
 func _ready() -> void:
 	wall_min_slide_angle = .01
-	
-	
 	
 
 
@@ -121,13 +120,16 @@ func _physics_process(delta: float) -> void:
 	
 	hititemtimer -= delta
 	for i in get_slide_collision_count():
-		var col = get_slide_collision(i).get_collider()
+		var col : Object = get_slide_collision(i).get_collider()
 		
 		if col is RigidBody3D and hititemtimer < 0.0:
 			hititemtimer = .3
-			var normal = -1.0 * get_slide_collision(i).get_normal()
-			var forcevector : Vector3 = Vector3(0, 3.0, 0) + normal * 10.0
-			col.apply_central_impulse(forcevector)
+			var colasrb : RigidBody3D = col as RigidBody3D
+			var pos : Vector3 = colasrb.global_position
+			var dir : Vector3 = (global_position - pos).normalized()
+			pos += dir  * 2
+			Event.launch.emit(pos, 5.0, 30.0, true)
+			Event.launcheffect(pos, map)
 			#velocity += forcevector * -2.0
 			
 	
@@ -155,64 +157,42 @@ var RHitem : Item
 @onready var bottomright : Sprite3D = %bottomright
 func interact_items() -> void:
 	
-	var pitch = maincamera.rotation.x
-	var yaw = camerapivot.rotation.y
-	var facing = Vector3(cos(pitch) * sin(yaw),-sin(pitch), cos(pitch) * cos(yaw)).normalized()
 	if Qpressed >= 1.0 and LHitem:
-		LHitem.state = LHitem.Neutral.new(LHitem)
-		var r = cameraraycast(5)
-		var pos = r.get("position")
-		var dist : float
-		if !pos:
-			dist = 4.0
-		else:
-			dist = global_position.distance_to(pos)
-		LHitem.global_position = global_position + facing * -.8 * dist + Vector3(0, .8, 0) 
-		LHitem = null
+		Event.dropitem.emit(-1.0)
 		return
 	if Epressed >= 1.0 and RHitem:
-		RHitem.state = RHitem.Neutral.new(RHitem)
-		var r = cameraraycast(5)
-		var pos = r.get("position")
-		var dist : float
-		if !pos:
-			dist = 4.0
-		else:
-			dist = global_position.distance_to(pos)
-		RHitem.global_position = global_position + facing * -.8 * dist + Vector3(0, .8, 0)
-		RHitem = null
+		Event.dropitem.emit(1.0)
 		return
 			
-	
+	if lmbpressed >= 1.0:
+		Event.useitem.emit(-1.0)
+	if rmbpressed >= 1.0:
+		Event.useitem.emit(1.0)
+		
 	var result = cameraraycast(10)
 	var col = result.get("collider")
 	if col is Item:
-		var shapeobj : CollisionShape3D = col.get_node("shape")
-		var focus : Array = focus_on_bounds(shapeobj, maincamera)
-		topleft.global_position = focus[0]
-		topright.global_position = focus[1]
-		bottomleft.global_position = focus[2]
-		bottomright.global_position = focus[3]
 		var colasitem : Item = col
-		if Qpressed >= 1.0 and !LHitem:
-			LHitem = colasitem
-			LHitem.state = LHitem.Held.new(LHitem, -1, lefthand)
+		if colasitem.interactable:
+			var shapeobj : CollisionShape3D = col.get_node("shape")
+			var focus : Array = focus_on_bounds(shapeobj, maincamera)
+			topleft.global_position = focus[0]
+			topright.global_position = focus[1]
+			bottomleft.global_position = focus[2]
+			bottomright.global_position = focus[3]
+			
+			if Qpressed >= 1.0 and !LHitem:
+				colasitem.pickup_me(-1.0, colasitem.global_position)
+				return
+			if Epressed >= 1.0 and !RHitem:
+				colasitem.pickup_me(1.0, colasitem.global_position)
+				return
 			return
-		if Epressed >= 1.0 and !RHitem:
-			RHitem = colasitem
-			RHitem.state = RHitem.Held.new(RHitem, 1, righthand)
-			return
-		return
 	var outofview : Vector3 = Vector3(0, 99, 0)
 	topleft.global_position = outofview
 	topright.global_position = outofview
 	bottomleft.global_position = outofview
 	bottomright.global_position = outofview
-	
-	if lmbpressed >= 1.0 and LHitem:
-		LHitem.itemdata.on_use(LHitem)
-	if rmbpressed >= 1.0 and RHitem:
-		RHitem.itemdata.on_use(RHitem)
 
 func held_items() -> void:
 	if LHitem:
@@ -229,7 +209,6 @@ func held_items() -> void:
 			righthand.texture = hand2
 		else:
 			righthand.texture = hand1
-		
 		
 func focus_on_bounds(collision_shape: CollisionShape3D, camera: Camera3D) -> Array:
 	if not collision_shape or not camera:
@@ -296,13 +275,32 @@ func focus_on_bounds(collision_shape: CollisionShape3D, camera: Camera3D) -> Arr
 
 func cameraraycast(length : float) -> Dictionary:
 	var space_state = get_world_3d().direct_space_state
-	var mousepos = get_viewport().get_mouse_position()
-	var origin = maincamera.project_ray_origin(mousepos)
-	var end = origin + maincamera.project_ray_normal(mousepos) * length
+	var center = get_viewport().get_visible_rect().get_center()
+	var origin = maincamera.project_ray_origin(center)
+	var end = origin + maincamera.project_ray_normal(center) * length
 	var query = PhysicsRayQueryParameters3D.create(origin, end)
 	query.collide_with_areas = true
 	var result = space_state.intersect_ray(query)
 	return result
+
+func get_facing() -> Vector3:
+	var pitch = maincamera.rotation.x
+	var yaw = camerapivot.rotation.y
+	var facing = Vector3(cos(pitch) * sin(yaw),-sin(pitch), cos(pitch) * cos(yaw)).normalized()
+	return facing
+	
+		
+	
+@onready var launch_me_connect = Event.launch.connect(launch_me)
+func launch_me(pos : Vector3, ramge : float, strength : float, playerimmune : bool):
+	if playerimmune:
+		return
+	var dist : float = pos.distance_to(global_position)
+	if dist < ramge:
+		var dir = (global_position - pos).normalized()
+		dir.y = max(.2, 0)
+		velocity += (1.0 - (dist / ramge)) * strength * dir
+		
 	
 	
 	
@@ -318,12 +316,12 @@ func cameraraycast(length : float) -> Dictionary:
 @abstract class PlayerState:
 	var yvelocitystep := 0.0
 	var xvelocitystep := 1
-	@abstract func PhysUpdate(p : player) -> void
-	@abstract func AnimateHands(p : player) -> void
+	@abstract func PhysUpdate(p : Player) -> void
+	@abstract func AnimateHands(p : Player) -> void
 	var debugstate := false
 	
 class Neutral extends PlayerState:
-	func PhysUpdate(p : player) -> void:
+	func PhysUpdate(p : Player) -> void:
 		if debugstate:
 			print("neutral")
 		if p.velocity.y > yvelocitystep:
@@ -332,13 +330,13 @@ class Neutral extends PlayerState:
 			p.pstate = Falling.new()
 		elif p.inputdir.length() > 0.0:
 			p.pstate = Moving.new()
-	func AnimateHands(p : player) -> void:
+	func AnimateHands(p : Player) -> void:
 		p.LHtargetpos = p.LHdefaultpos
 		p.RHtargetpos = p.RHdefaultpos
 		return
 		
 class Moving extends PlayerState:
-	func PhysUpdate(p : player) -> void:
+	func PhysUpdate(p : Player) -> void:
 		if debugstate:
 			print("moving")
 		if p.velocity.y > yvelocitystep:
@@ -347,7 +345,7 @@ class Moving extends PlayerState:
 			p.pstate = Falling.new()
 		elif !p.inputdir.length() > 0.0:
 			p.pstate = Neutral.new()
-	func AnimateHands(p : player) -> void:
+	func AnimateHands(p : Player) -> void:
 		var lhadd := Vector3(sin((Time.get_ticks_msec() + 50) * .005) * .1, sin(Time.get_ticks_msec() * .01) * .2, 0)
 		var rhadd := Vector3(sin((Time.get_ticks_msec() + 60) * .005) * .1, sin((Time.get_ticks_msec() + 100) * .01) * .2, 0)
 		lhadd.x += p.inputdir.x * .3
@@ -357,12 +355,12 @@ class Moving extends PlayerState:
 		return
 		
 class Ascending extends PlayerState:
-	func PhysUpdate(p : player) -> void:
+	func PhysUpdate(p : Player) -> void:
 		if debugstate:
 			print("asc")
 		if p.velocity.y <= 0.0:
 			p.pstate = Neutral.new()
-	func AnimateHands(p : player) -> void:
+	func AnimateHands(p : Player) -> void:
 		var lhadd := Vector3(0, .1, .2)
 		var rhadd := Vector3(0, .1, .2)
 		lhadd.x += p.inputdir.x * .3
@@ -372,12 +370,12 @@ class Ascending extends PlayerState:
 		return
 		
 class Falling extends PlayerState:
-	func PhysUpdate(p : player) -> void:
+	func PhysUpdate(p : Player) -> void:
 		if debugstate:
 			print("fall")
 		if p.velocity.y >= 0.0:
 			p.pstate = Neutral.new()
-	func AnimateHands(p : player) -> void:
+	func AnimateHands(p : Player) -> void:
 		var lhadd := Vector3(0, -.6, -.2)
 		var rhadd := Vector3(0, -.6, -.2)
 		lhadd.x += p.inputdir.x * .3
