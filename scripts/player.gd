@@ -27,6 +27,7 @@ var sens : Vector2 = Vector2(1.0, 1.0)
 
 
 func _ready() -> void:
+	DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_MAXIMIZED)
 	wall_min_slide_angle = .01
 	
 
@@ -147,9 +148,12 @@ func _physics_process(delta: float) -> void:
 	interact_items()
 	held_items()
 	handle_health_and_death(delta)
+	
+	if global_position.y < -100.0:
+		hp -= .05
 
 func do_camera_tilt() -> void:
-	camerapivot.rotation.z = lerpf(camerapivot.rotation.z, -1.0 * inputdir.x * .05, .2)
+	camerapivot.rotation.z = lerpf(camerapivot.rotation.z, inputdir.x * -.03, .2)
 	
 var LHitem : Item
 var RHitem : Item
@@ -320,6 +324,7 @@ func handle_health_and_death(delta : float) -> void:
 		dying = -.1
 		
 	if dying < -1.0:
+		Event.collection_status = [false, false, false, false]
 		get_tree().change_scene_to_file("res://entities/map.tscn")
 		
 	
@@ -345,7 +350,6 @@ func damage_me(pos : Vector3, ramge : float, value : float, playerimmune : bool)
 		hp -= value
 		Event.play_sound(aud, "hurt1.mp3", .2, 1.0)
 		Event.damageeffect(global_position, self)
-		print(hp)
 	
 @onready var pstate : PlayerState = Neutral.new();
 	

@@ -5,12 +5,19 @@ class_name Item
 
 
 @onready var sprite3d : Sprite3D = get_node("sprite")
-@onready var player : CharacterBody3D = %player
+@onready var player : CharacterBody3D = $"../../player"
+
+@onready var map = $"../../map"
+@onready var uicamera = $"../../canvas/SubViewportContainer/uiviewport/uicamera"
+@onready var aud = $"../../director/audio"
+@onready var collection = [
+	$"../../canvas/SubViewportContainer/uiviewport/uicamera/collection/col1", 
+	$"../../canvas/SubViewportContainer/uiviewport/uicamera/collection/col2",
+	$"../../canvas/SubViewportContainer/uiviewport/uicamera/collection/col3", 
+	$"../../canvas/SubViewportContainer/uiviewport/uicamera/collection/col4",
+	$"../../canvas/SubViewportContainer/uiviewport/uicamera/collection/col5"
+	]
 @onready var playerScript : Player = player as Player
-@onready var map = %map
-@onready var uicamera = %uicamera
-@onready var aud = %audio
-@onready var collection = [%col1, %col2, %col3, %col4, %col5]
 @onready var noise = preload("res://textures/realnoise.png")
 var state : ItemState
 
@@ -379,6 +386,10 @@ class Killer extends ItemData:
 		return
 	func on_process(delta : float, item : Item) -> void:
 		if item.state is not EntityNeutral and item.state is not EntityAggresive:
+			item.state = EntityNeutral.new(item)
+			
+		var dist : float = item.global_position.distance_to(item.player.global_position)
+		if dist < 10.0:
 			item.state = EntityAggresive.new(item)
 		super(delta, item)
 		
