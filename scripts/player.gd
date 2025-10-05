@@ -137,7 +137,7 @@ func _physics_process(delta: float) -> void:
 			
 	
 	debugtext.text = "%0.2f" % sqrt( pow(velocity.x, 2) + pow(velocity.z, 2) ) + "\n" + str(Engine.get_frames_per_second())
-	
+	debugtext.text = ""
 	pstate.PhysUpdate(self)
 	pstate.AnimateHands(self)
 	var lerpvalue = .04
@@ -294,6 +294,13 @@ func cameraraycast(length : float) -> Dictionary:
 	var result = space_state.intersect_ray(query)
 	return result
 
+func raycast(start : Vector3, end : Vector3) -> Dictionary:
+	var space_state = get_world_3d().direct_space_state
+	var query = PhysicsRayQueryParameters3D.create(start, end)
+	query.collide_with_areas = true
+	var result = space_state.intersect_ray(query)
+	return result
+
 func get_facing() -> Vector3:
 	var pitch = maincamera.rotation.x
 	var yaw = camerapivot.rotation.y
@@ -303,6 +310,8 @@ func get_facing() -> Vector3:
 var hp : float = 10.0
 var dying : float = 1.0
 func handle_health_and_death(delta : float) -> void:
+	var maxhp = 10.0
+	hp = min(hp, maxhp)
 	damageUI.material_override.set_shader_parameter("dissolve_value", 1.0 - hp / 10.0)
 	if dying < 0.0:
 		dying -= delta
