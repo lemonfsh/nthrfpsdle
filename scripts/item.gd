@@ -9,6 +9,9 @@ class_name Item
 @onready var playerScript : Player = player as Player
 @onready var map = %map
 @onready var uicamera = %uicamera
+@onready var aud = %audio
+@onready var collection = [%col1, %col2, %col3, %col4, %col5]
+
 var state : ItemState
 
 @export var itemDataAsString : String
@@ -16,16 +19,34 @@ var itemdata : ItemData
 
 @export var interactable : bool = true
 
+var dissolve : float = 1.0
+
+var hp = 10.0
+var maxhp = 10.0
 func _ready() -> void:
 	state = Neutral.new(self)
 	itemdata = create_instance("res://scripts/item.gd", itemDataAsString)
 	if !itemdata:
 		print("NO ITEM DATA STRING")
-		itemdata = Stick.new()
+		itemdata = ThrowingKnife.new()
 	sprite3d.texture = itemdata.image
-
+	var shader : ShaderMaterial = load("res://shaders/dissolver.tres") 
+	sprite3d.material_override = shader.duplicate(true)
+	sprite3d.material_override.set_shader_parameter("dissolve_texture", itemdata.image)
+	sprite3d.material_override.set_shader_parameter("real_texture", itemdata.image)
+	
+	var shape : CollisionShape3D = get_node("shape")
+	var shapebox : BoxShape3D = shape.shape
+	shapebox.size = itemdata.sizeoverride
+	contact_monitor = true
+	max_contacts_reported = 4
 func _process(delta: float) -> void:
+	dissolve = clamp(dissolve, 0.0, 1.0)
+	sprite3d.material_override.set_shader_parameter("dissolve_value", dissolve)
+	
+func _physics_process(delta: float) -> void:
 	state.on_process(delta, self)
+	itemdata.on_process(delta, self)
 
 @onready var drop_me_connect = Event.dropitem.connect(drop_me)
 func drop_me(whichhand : float) -> void:
@@ -39,11 +60,14 @@ func drop_me(whichhand : float) -> void:
 			dist = 4.0
 		else:
 			dist = playerScript.global_position.distance_to(pos)
+		if dist < 1:
+			dist = 0.1
 		global_position = playerScript.global_position + facing * -.8 * dist + Vector3(0, .8, 0) 
 		if whichhand < 0.0:
 			playerScript.LHitem = null
 		else:
 			playerScript.RHitem = null
+		Event.play_sound(aud, "click.ogg", .6, 1.0)
 		
 @onready var pickup_me_connect = Event.pickupitem.connect(pickup_me)
 func pickup_me(whichhand : float, globalpos : Vector3):
@@ -53,6 +77,12 @@ func pickup_me(whichhand : float, globalpos : Vector3):
 			playerScript.LHitem = self
 		else:
 			playerScript.RHitem = self
+		Event.play_sound(aud, "clickgood.wav", .6, 1.0)
+		return
+	if state is EntityNeutral and globalpos.distance_to(global_position) < .1:
+		itemdata.on_interact(self)
+		Event.play_sound(aud, "clickgood.wav", .6, 2.0)
+		return
 			
 @onready var use_me_connect = Event.useitem.connect(use_me)
 func use_me(whichhand : float):
@@ -68,6 +98,17 @@ func launch_me(pos : Vector3, ramge : float, strength : float, playerimmune : bo
 			dir.y = max(.2, 0)
 			apply_impulse((1.0 - (dist / ramge)) * strength * dir)
 			Event.launcheffect(global_position, map)
+			Event.play_sound(aud, "jump.wav", .1, 3.0)
+
+@onready var damage_me_connect = Event.damage.connect(damage_me)
+func damage_me(pos : Vector3, ramge : float, value : float, playerimmune : bool):
+	var dist : float = pos.distance_to(global_position)
+	if dist < ramge:
+		print("I AM ITEM BEING DAMAGED ", itemdata.name, value * (1.0 - (dist / ramge)))
+		hp -= value
+		Event.play_sound(aud, "hurt1.mp3", .2, 1.0)
+		Event.damageeffect(global_position, self)
+
 
 
 @abstract class ItemState:
@@ -109,8 +150,40 @@ class Held extends ItemState:
 		item.position = Vector3(whichhand * 1.8, -.6, -4)
 		
 		
-		
-		
+class Collected extends ItemState:
+	func _init(item : Item) -> void:
+		item.get_parent().remove_child(item)
+		var collected : int = 0
+		for b : bool in Event.collection_status:
+			if b:
+				collected += 1
+			else:
+				break
+		Event.collection_status[collected] = true
+		item.collection[collected].add_child(item)
+		print(Event.collection_status)
+		item.sprite3d.set_layer_mask_value(2, true)
+		item.sprite3d.set_layer_mask_value(1, false)
+		item.position = Vector3(0, 0, 0)
+		item.sprite3d.pixel_size = .004
+		return
+	func on_process(delta : float, item : Item) -> void:
+		item.position = Vector3(0, 0, 0)
+		return
+
+class EntityNeutral extends ItemState:
+	func _init(item : Item) -> void:
+		return
+	func on_process(delta : float, item : Item) -> void:
+		return
+
+class EntityAggresive extends ItemState:
+	func _init(item : Item) -> void:
+		return
+	func on_process(delta : float, item : Item) -> void:
+		var dir : Vector3 = (item.global_position - item.player.global_position).normalized()
+		item.linear_velocity = dir * -4.0
+		print(dir)
 		
 func create_instance(script_path: String, classname: String) -> Object:
 	var script = load(script_path)
@@ -124,23 +197,234 @@ func create_instance(script_path: String, classname: String) -> Object:
 @abstract class ItemData:
 	var name : String
 	var image : Texture2D
+	var local : float = 1.0
+	var sizeoverride : Vector3 = Vector3(1.0, 1.0, 1.0)
 	func AssignImage() -> void:
 		image = load("res://textures/" + name + ".png")
-	@abstract func on_use(item : Item) -> void
-	
-
-class Stick extends ItemData:
-	func _init() -> void:
-		name = "stick"
-		AssignImage()
-	func on_use(item : Item) -> void:
-		print("used stick")
 		
-class Launcher extends ItemData:
+	@abstract func on_use(item : Item) -> void
+	func on_process(delta : float, item : Item) -> void:
+		return
+	func on_physics_process(delta : float, item : Item) -> void:
+		return
+	func on_interact(item : Item) -> void:
+		return
+		
+		
+	func eat_use(item : Item):
+		local -= 1.1
+		Event.play_sound(item.aud, "eat.ogg", .4, 1.0)
+	func eat_process(delta : float, item : Item):
+		item.dissolve = lerpf(item.dissolve, local, .03)
+		if item.dissolve <= 0.0 and item.state is not Collected:
+			item.interactable = false
+			Event.dropitem.emit(item.state.whichhand)
+			item.state = Collected.new(item)
+			local = 1.0
+			Event.play_sound(item.aud, "eat.ogg", .4, 1.0)
+
+class ThrowingKnife extends ItemData:
 	func _init() -> void:
-		name = "ball"
+		name = "throwing knife"
+		local = -1.0
 		AssignImage()
 	func on_use(item : Item) -> void:
 		Event.dropitem.emit(item.state.whichhand)
-		Event.launch.emit(item.global_position, 20.0, 50.0, false)
+		item.apply_impulse(item.player.get_facing() * -20.0 + Vector3(0, 2.0, 0))
+		local = 1.0
+	func on_process(delta : float, item : Item) -> void:
+		var collisions = item.get_colliding_bodies()
+		if local > 0.0:
+			if collisions.size() > 0:
+				Event.damage.emit(item.global_position, 3.0, .5 * item.linear_velocity.length(), true)
+				local = -1.0
 	
+class Bomb extends ItemData:
+	func _init() -> void:
+		name = "bomb"
+		AssignImage()
+	func on_use(item : Item) -> void:
+		Event.dropitem.emit(item.state.whichhand)
+		item.interactable = false
+		item.hp -= 10.1
+	func on_process(delta : float, item : Item) -> void:
+		item.dissolve = lerpf(item.dissolve, item.hp, .1)
+		if item.dissolve <= 0.6:
+			Event.launch.emit(item.global_position, 20.0, 10.0, false)
+			Event.damage.emit(item.global_position, 5.0, 3.0, false)
+			item.queue_free()
+			
+class Food extends ItemData:
+	func _init() -> void:
+		name = "food"
+		AssignImage()
+	func on_use(item : Item) -> void:
+		eat_use(item)
+	func on_process(delta : float, item : Item) -> void:
+		item.dissolve = lerpf(item.dissolve, local, .03)
+		if item.dissolve <= 0.0:
+			item.interactable = false
+			local = 1.0
+			Event.play_sound(item.aud, "eat.ogg", .4, 1.0)
+			item.player.hp += 5.0
+			item.queue_free()
+			
+class Flight extends ItemData:
+	func _init() -> void:
+		name = "flight"
+		AssignImage()
+	func on_use(item : Item) -> void:
+		if local > 0.0:
+			item.player.velocity += Vector3(0, 60.0, 0)
+			local = -1.0
+		else:
+			Event.play_sound(item.aud, "selectno.wav", .5, 1.0)
+	func on_process(delta : float, item : Item) -> void:
+		item.dissolve = local + 1.0
+		local += delta
+		
+			
+			
+			
+			
+			
+class Stenemy extends ItemData:
+	var dialouge : Array = [
+		"YOU CAN FEEL IT.", 
+		"THE VIBRATION. ITS OFF. \nIT ALWAYS HAS BEEN.", 
+		"THE CANCER WAS GROWN FROM THE HEART. \nTHE ORIGIN.", 
+		"ITS SO OBVIOUS."
+		]
+	var dialougeindex : int = 0
+	func _init() -> void:
+		name = "stenemy"
+		sizeoverride = Vector3(1.0, 3.0, 1.0)
+		AssignImage()
+	func on_use(item : Item) -> void:
+		return
+	func on_process(delta : float, item : Item) -> void:
+		if item.state is not EntityNeutral and item.state is not EntityAggresive:
+			item.state = EntityNeutral.new(item)
+		return
+	func on_interact(item : Item) -> void:
+		if dialougeindex >= dialouge.size():
+			item.state = EntityAggresive.new(item)
+			item.interactable = false
+			dialougeindex = 0
+		name = dialouge[dialougeindex]
+		dialougeindex += 1
+		
+			
+			
+class Minion extends ItemData:
+	var dialouge : Array = [
+		"YOU ARE BEING CONTROLLED BY IT.",
+		"THE THOUGHTS ARE CORRUPT.",
+		"IT LEADS THE REST OF THE BODY.",
+		"THE TUMOR IS ROOTED IN THE BRAIN.",
+		"IT COULDNT BE MORE CLEAR.",
+		]
+	var dialougeindex : int = 0
+	func _init() -> void:
+		name = "minion"
+		sizeoverride = Vector3(1.0, 2.5, 1.0)
+		AssignImage()
+	func on_use(item : Item) -> void:
+		return
+	func on_process(delta : float, item : Item) -> void:
+		if item.state is not EntityNeutral and item.state is not EntityAggresive:
+			item.state = EntityNeutral.new(item)
+		#if item.state is EntityAggresive:
+		local = item.hp / item.maxhp
+		item.dissolve = lerpf(item.dissolve, local, .02)
+		if item.dissolve <= 0.5:
+			Event.play_sound(item.aud, "hurt2.mp3", .4, 1.0)
+			item.queue_free()
+		return
+	func on_interact(item : Item) -> void:
+		if dialougeindex >= dialouge.size():
+			item.state = EntityAggresive.new(item)
+			item.interactable = false
+			dialougeindex = 0
+		name = dialouge[dialougeindex]
+		dialougeindex += 1
+		
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+class Lungs extends ItemData:
+	func _init() -> void:
+		name = "lungs"
+		local = 1.0
+		AssignImage()
+	func on_use(item : Item) -> void:
+		eat_use(item)
+	func on_process(delta : float, item : Item) -> void:
+		eat_process(delta, item)
+	
+class Heart extends ItemData:
+	func _init() -> void:
+		name = "heart"
+		local = 1.0
+		AssignImage()
+	func on_use(item : Item) -> void:
+		eat_use(item)
+	func on_process(delta : float, item : Item) -> void:
+		eat_process(delta, item)
+		
+class Stomach extends ItemData:
+	func _init() -> void:
+		name = "stomach"
+		local = 1.0
+		AssignImage()
+	func on_use(item : Item) -> void:
+		eat_use(item)
+	func on_process(delta : float, item : Item) -> void:
+		eat_process(delta, item)
+
+class Brain extends ItemData:
+	func _init() -> void:
+		name = "brain"
+		local = 1.0
+		AssignImage()
+	func on_use(item : Item) -> void:
+		eat_use(item)
+	func on_process(delta : float, item : Item) -> void:
+		eat_process(delta, item)
+
+class Skinn extends ItemData:
+	func _init() -> void:
+		name = "skin"
+		local = 1.0
+		AssignImage()
+	func on_use(item : Item) -> void:
+		eat_use(item)
+		Event.damage.emit(item.player.global_position, 1.0, 2.0, false)
+	func on_process(delta : float, item : Item) -> void:
+		eat_process(delta, item)

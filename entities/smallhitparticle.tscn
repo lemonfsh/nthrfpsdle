@@ -1,0 +1,29 @@
+[gd_scene load_steps=5 format=3 uid="uid://ulr47bsqc31a"]
+
+[ext_resource type="Material" uid="uid://c720vpw361shn" path="res://shaders/particle.tres" id="1_j7y2a"]
+[ext_resource type="Script" uid="uid://djqvn6ui2kxxq" path="res://scripts/particle.gd" id="2_mghy8"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_ccewq"]
+material = ExtResource("1_j7y2a")
+
+[sub_resource type="Curve" id="Curve_ccewq"]
+_data = [Vector2(0.011235952, 0.26966298), 0.0, 0.0, 0, 0, Vector2(0.55617976, 0.23595512), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
+point_count = 3
+
+[node name="CPUParticles3D" type="CPUParticles3D"]
+emitting = false
+amount = 15
+lifetime = 0.15000000000000002
+one_shot = true
+explosiveness = 0.83
+randomness = 1.0
+mesh = SubResource("BoxMesh_ccewq")
+direction = Vector3(0, 1, 0)
+spread = 106.6
+gravity = Vector3(0, -1, 0)
+initial_velocity_min = 1.0
+initial_velocity_max = 5.0
+scale_amount_min = 0.0
+scale_amount_max = 0.2
+scale_amount_curve = SubResource("Curve_ccewq")
+script = ExtResource("2_mghy8")

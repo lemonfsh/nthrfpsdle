@@ -6,6 +6,8 @@ class_name Player
 @onready var canvas = %canvas
 @onready var debugtext : Label3D = %debug
 @onready var map = %map
+@onready var aud = %audio
+@onready var damageUI : Sprite3D = %damage
 
 @onready var lefthand : Sprite3D = %lefthand
 @onready var righthand : Sprite3D = %righthand
@@ -42,11 +44,11 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 var maxspeed := 12.0
-var accel := 2.0
+var accel := 1.0
 var slowaccelrate = 2.0
 
-var gravity := 1.5
-var jumpforce := 30.0
+var gravity := 1.2
+var jumpforce := 20.0
 
 var jumptimer := -1.0
 var hititemtimer := -1.0
@@ -56,7 +58,7 @@ var lmbpressed : float
 var rmbpressed : float
 var Epressed : float
 var Qpressed : float
-
+var Fpressed : float
 
 func take_input(delta : float) -> void:
 	var inputbuffer : float = delta * 5.0
@@ -64,6 +66,7 @@ func take_input(delta : float) -> void:
 	rmbpressed = boolinputasbuffer(Input.is_action_just_pressed("rmb"), rmbpressed, inputbuffer)
 	Epressed = boolinputasbuffer(Input.is_action_just_pressed("E"), Epressed, inputbuffer)
 	Qpressed = boolinputasbuffer(Input.is_action_just_pressed("Q"), Qpressed, inputbuffer)
+	Fpressed = boolinputasbuffer(Input.is_action_just_pressed("F"), Fpressed, inputbuffer)
 	inputdir = Input.get_vector("left", "right", "up", "down");
 	inputdir = inputdir.normalized()
 	
@@ -93,7 +96,7 @@ func _physics_process(delta: float) -> void:
 	 
 	v += wishdir * accel * clampf(realmaxspeed / v.length(), 0.0, slowaccelrate)
 	
-	var friction := .99
+	var friction := .98
 	if is_on_floor() or is_on_wall():
 		friction *= .95
 	if wishdir.length() > 0.1:
@@ -110,10 +113,10 @@ func _physics_process(delta: float) -> void:
 	if Input.get_action_strength("space") > 0.0 and jumptimer < 0.0 and is_on_floor():
 		v.y += jumpforce
 		jumptimer = .2
+		Event.play_sound(aud, "jump.wav", .03, 1.0)
 		
 	v.y -= gravity
 	velocity = v;
-	
 	
 	
 	move_and_slide()
@@ -130,7 +133,7 @@ func _physics_process(delta: float) -> void:
 			pos += dir  * 2
 			Event.launch.emit(pos, 5.0, 30.0, true)
 			Event.launcheffect(pos, map)
-			#velocity += forcevector * -2.0
+			Event.play_sound(aud, "jump.wav", .1, 3.0)
 			
 	
 	debugtext.text = "%0.2f" % sqrt( pow(velocity.x, 2) + pow(velocity.z, 2) ) + "\n" + str(Engine.get_frames_per_second())
@@ -143,7 +146,7 @@ func _physics_process(delta: float) -> void:
 	
 	interact_items()
 	held_items()
-
+	handle_health_and_death(delta)
 
 func do_camera_tilt() -> void:
 	camerapivot.rotation.z = lerpf(camerapivot.rotation.z, -1.0 * inputdir.x * .05, .2)
@@ -155,6 +158,9 @@ var RHitem : Item
 @onready var topright : Sprite3D = %topright
 @onready var bottomleft : Sprite3D = %bottomleft
 @onready var bottomright : Sprite3D = %bottomright
+
+@onready var inspect : Label3D = %inspect
+
 func interact_items() -> void:
 	
 	if Qpressed >= 1.0 and LHitem:
@@ -169,7 +175,7 @@ func interact_items() -> void:
 	if rmbpressed >= 1.0:
 		Event.useitem.emit(1.0)
 		
-	var result = cameraraycast(10)
+	var result = cameraraycast(8)
 	var col = result.get("collider")
 	if col is Item:
 		var colasitem : Item = col
@@ -180,6 +186,9 @@ func interact_items() -> void:
 			topright.global_position = focus[1]
 			bottomleft.global_position = focus[2]
 			bottomright.global_position = focus[3]
+			
+			inspect.text = colasitem.itemdata.name
+			inspect.global_position = lerp(topleft.global_position, bottomleft.global_position, .5)
 			
 			if Qpressed >= 1.0 and !LHitem:
 				colasitem.pickup_me(-1.0, colasitem.global_position)
@@ -193,6 +202,8 @@ func interact_items() -> void:
 	topright.global_position = outofview
 	bottomleft.global_position = outofview
 	bottomright.global_position = outofview
+	inspect.global_position = outofview
+	inspect.text = ""
 
 func held_items() -> void:
 	if LHitem:
@@ -289,6 +300,18 @@ func get_facing() -> Vector3:
 	var facing = Vector3(cos(pitch) * sin(yaw),-sin(pitch), cos(pitch) * cos(yaw)).normalized()
 	return facing
 	
+var hp : float = 10.0
+var dying : float = 1.0
+func handle_health_and_death(delta : float) -> void:
+	damageUI.material_override.set_shader_parameter("dissolve_value", 1.0 - hp / 10.0)
+	if dying < 0.0:
+		dying -= delta
+		
+	if hp <= 0.0 and dying > 0.0:
+		dying = -.1
+		
+	if dying < -1.0:
+		get_tree().change_scene_to_file("res://entities/map.tscn")
 		
 	
 @onready var launch_me_connect = Event.launch.connect(launch_me)
@@ -300,9 +323,20 @@ func launch_me(pos : Vector3, ramge : float, strength : float, playerimmune : bo
 		var dir = (global_position - pos).normalized()
 		dir.y = max(.2, 0)
 		velocity += (1.0 - (dist / ramge)) * strength * dir
+		Event.launcheffect(pos, map)
+		Event.play_sound(aud, "jump.wav", .1, 3.0)
 		
 	
-	
+@onready var damage_me_connect = Event.damage.connect(damage_me)
+func damage_me(pos : Vector3, ramge : float, value : float, playerimmune : bool):
+	if playerimmune:
+		return
+	var dist : float = pos.distance_to(global_position)
+	if dist < ramge:
+		hp -= value
+		Event.play_sound(aud, "hurt1.mp3", .2, 1.0)
+		Event.damageeffect(global_position, self)
+		print(hp)
 	
 @onready var pstate : PlayerState = Neutral.new();
 	
@@ -374,6 +408,7 @@ class Falling extends PlayerState:
 		if debugstate:
 			print("fall")
 		if p.velocity.y >= 0.0:
+			Event.smallhiteffect(p.global_position, p)
 			p.pstate = Neutral.new()
 	func AnimateHands(p : Player) -> void:
 		var lhadd := Vector3(0, -.6, -.2)

@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bn87hi8fpowk7"
-path="res://.godot/imported/stick.png-05a20cde246290552d1a8e0f78a4bcc1.ctex"
+uid="uid://cs88q75txxg7t"
+path="res://.godot/imported/heart.png-5d457948ef7563ccb0bc4ed32cbddea7.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://textures/stick.png"
-dest_files=["res://.godot/imported/stick.png-05a20cde246290552d1a8e0f78a4bcc1.ctex"]
+source_file="res://textures/heart.png"
+dest_files=["res://.godot/imported/heart.png-5d457948ef7563ccb0bc4ed32cbddea7.ctex"]
 
 [params]
 

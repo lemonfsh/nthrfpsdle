@@ -1,0 +1,19 @@
+[gd_resource type="ShaderMaterial" load_steps=3 format=3 uid="uid://8ce352wvwtoj"]
+
+[ext_resource type="Shader" uid="uid://cmawrr6mhqfab" path="res://shaders/triplanar.gdshader" id="1_7k51y"]
+[ext_resource type="Texture2D" uid="uid://cecqntip480yv" path="res://textures/flesh1.png" id="2_7k51y"]
+
+[resource]
+render_priority = 0
+shader = ExtResource("1_7k51y")
+shader_parameter/enable_normal_map = false
+shader_parameter/enable_roughness = false
+shader_parameter/roughness = 1.0
+shader_parameter/blend_sharpness = 25.0
+shader_parameter/global_scale = 10.0
+shader_parameter/x_albedo = ExtResource("2_7k51y")
+shader_parameter/x_scale = 1.0
+shader_parameter/y_albedo = ExtResource("2_7k51y")
+shader_parameter/y_scale = 1.0
+shader_parameter/z_albedo = ExtResource("2_7k51y")
+shader_parameter/z_scale = 1.0

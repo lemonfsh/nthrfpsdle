@@ -1,0 +1,12 @@
+[gd_resource type="ShaderMaterial" load_steps=3 format=3 uid="uid://beky7h5dm64qa"]
+
+[ext_resource type="Shader" uid="uid://dc5y3mp5pdx6a" path="res://shaders/dissolve.gdshader" id="1_0ojd0"]
+[ext_resource type="Texture2D" uid="uid://dr1b2d2b53jgp" path="res://textures/noise.png" id="2_wdwn0"]
+
+[resource]
+resource_local_to_scene = true
+render_priority = 1
+shader = ExtResource("1_0ojd0")
+shader_parameter/real_texture = ExtResource("2_wdwn0")
+shader_parameter/dissolve_texture = ExtResource("2_wdwn0")
+shader_parameter/dissolve_value = 0.0
