@@ -6,8 +6,10 @@ class_name Player
 @onready var canvas = %canvas
 @onready var debugtext : Label3D = %debug
 @onready var map = %map
-@onready var aud = %audio
+@onready var aud = %audio2
 @onready var damageUI : Sprite3D = %damage
+@onready var tutorial : Label3D = %tutorial
+@onready var gameend : Label3D = %gameend
 
 @onready var lefthand : Sprite3D = %lefthand
 @onready var righthand : Sprite3D = %righthand
@@ -77,7 +79,11 @@ func boolinputasbuffer(b : bool, bf : float, delta : float) -> float:
 	bf -= delta
 	return bf
 	
+	
+var Gtimer : float = 0.0
 func _physics_process(delta: float) -> void:
+	if !Event.gameended:
+		Gtimer += delta
 	
 	take_input(delta)
 	
@@ -151,6 +157,11 @@ func _physics_process(delta: float) -> void:
 	
 	if global_position.y < -100.0:
 		hp -= .05
+		
+	tutorial.text = Event.tutorialtooltip
+	
+	if Event.gameended:
+		gameend.text = "TRUTH FOUND IN: " + str(Gtimer) + "\nSECRETS: " + str(Event.secrets)
 
 func do_camera_tilt() -> void:
 	camerapivot.rotation.z = lerpf(camerapivot.rotation.z, inputdir.x * -.03, .2)
@@ -194,6 +205,11 @@ func interact_items() -> void:
 			inspect.text = colasitem.itemdata.name
 			inspect.global_position = lerp(topleft.global_position, bottomleft.global_position, .5)
 			
+			if colasitem.state is Item.Neutral and Event.tutorialdone > 0:
+				Event.tutorialtooltip = "Q - E to pickup / drop"
+			if colasitem.state is Item.EntityNeutral and Event.tutorialdone > 0:
+				Event.tutorialtooltip = "Q - E to talk"
+			
 			if Qpressed >= 1.0 and !LHitem:
 				colasitem.pickup_me(-1.0, colasitem.global_position)
 				return
@@ -208,6 +224,11 @@ func interact_items() -> void:
 	bottomright.global_position = outofview
 	inspect.global_position = outofview
 	inspect.text = ""
+	
+	if (RHitem or LHitem) and Event.tutorialdone > 0:
+		Event.tutorialtooltip = "Left Click / Right Click to USE item"
+		return
+	Event.tutorialtooltip = ""
 
 func held_items() -> void:
 	if LHitem:
@@ -316,7 +337,21 @@ var dying : float = 1.0
 func handle_health_and_death(delta : float) -> void:
 	var maxhp = 10.0
 	hp = min(hp, maxhp)
-	damageUI.material_override.set_shader_parameter("dissolve_value", 1.0 - hp / 10.0)
+	
+	
+	var sinvalue : float = sin(Time.get_ticks_msec() * .002) * .05
+	
+	var col : int = 0
+	for b : bool in Event.collection_status:
+		if b:
+			col += 1
+	if col >= 5:
+		sinvalue *= 6.0
+	
+	
+	
+	var realvalue : float = (1.0 - hp / 10.0) + sinvalue
+	damageUI.material_override.set_shader_parameter("dissolve_value", realvalue)
 	if dying < 0.0:
 		dying -= delta
 		
@@ -325,6 +360,9 @@ func handle_health_and_death(delta : float) -> void:
 		
 	if dying < -1.0:
 		Event.collection_status = [false, false, false, false]
+		Event.tutorialtooltip = ""
+		Event.gameended = false
+		Event.secrets = 0
 		get_tree().change_scene_to_file("res://entities/map.tscn")
 		
 	

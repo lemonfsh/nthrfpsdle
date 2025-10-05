@@ -15,7 +15,7 @@ func _ready() -> void:
 var spawndelay : float
 func _physics_process(delta: float) -> void:
 	spawndelay += delta
-	if spawndelay > 2.0:
+	if spawndelay > 10.0:
 		spawndelay = 0.0
 		var d : Node = get_tree().get_current_scene()
 		var found : bool = false
@@ -23,9 +23,7 @@ func _physics_process(delta: float) -> void:
 			if i.itemDataAsString.match(itemDataAsString):
 				if i.global_position.distance_to(global_position) < 10.0:
 					found = true
-					print("found one ", i)
 		if !found:
-			print("spaoned on")
 			var part : Item  = itemprefab.instantiate()
 			part.itemDataAsString = itemDataAsString
 			map.add_child(part)

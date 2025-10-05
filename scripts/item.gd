@@ -62,6 +62,7 @@ func _physics_process(delta: float) -> void:
 		if dissolve <= 0.0:
 			if itemdata.on_death(self):
 				Event.play_sound(aud, "hurt2.mp3", .4, 1.0)
+				Event.deatheffect(global_position, map)
 				queue_free()
 
 @onready var drop_me_connect = Event.dropitem.connect(drop_me)
@@ -104,6 +105,7 @@ func pickup_me(whichhand : float, globalpos : Vector3):
 func use_me(whichhand : float):
 	if abs(whichhand - state.whichhand) < .1 and state is Held:
 		itemdata.on_use(self)
+		Event.tutorialdone -= 1
 
 @onready var launch_me_connect = Event.launch.connect(launch_me)
 func launch_me(pos : Vector3, ramge : float, strength : float, playerimmune : bool):
@@ -170,11 +172,15 @@ class Collected extends ItemState:
 	func _init(item : Item) -> void:
 		item.get_parent().remove_child(item)
 		var collected : int = 0
-		for b : bool in Event.collection_status:
+		for b in Event.collection_status:
 			if b:
 				collected += 1
 			else:
 				break
+		if collected >= 4:
+			Event.play_sound(item.aud, "doorslam.mp3", 1.0, 1.0)
+		else:
+			Event.play_sound(item.aud, "bigget.mp3", .5, 1.0)
 		Event.collection_status[collected] = true
 		item.collection[collected].add_child(item)
 		item.sprite3d.set_layer_mask_value(2, true)
@@ -182,6 +188,7 @@ class Collected extends ItemState:
 		item.position = Vector3(0, 0, 0)
 		item.sprite3d.pixel_size = .004
 		item.hp = item.maxhp
+		
 		return
 	func on_process(delta : float, item : Item) -> void:
 		item.position = Vector3(0, 0, 0)
@@ -200,8 +207,8 @@ class EntityAggresive extends ItemState:
 		return
 	func on_process(delta : float, item : Item) -> void:
 		var dir : Vector3 = (item.global_position - item.player.global_position).normalized()
-		item.linear_velocity = dir * -4.0
-		item.linear_velocity.y = 0
+		item.linear_velocity = dir * -5.0
+		item.linear_velocity.y = min(item.linear_velocity.y, .1)
 		local += delta
 		var dist : float = item.global_position.distance_to(item.player.global_position)
 		if dist < (1.5 + item.itemdata.sizeoverride.x) and local > 0.0:
@@ -225,7 +232,6 @@ func create_instance(script_path: String, classname: String) -> Object:
 	var sizeoverride : Vector3 = Vector3(1.0, 1.0, 1.0)
 	func AssignImage() -> void:
 		image = load("res://textures/" + name + ".png")
-		
 	@abstract func on_use(item : Item) -> void
 	func on_process(delta : float, item : Item) -> void:
 		return
@@ -246,7 +252,6 @@ func create_instance(script_path: String, classname: String) -> Object:
 			item.interactable = false
 			Event.dropitem.emit(item.state.whichhand)
 			item.state = Collected.new(item)
-			Event.play_sound(item.aud, "eat.ogg", .4, 1.0)
 		return false
 	
 class ThrowingKnife extends ItemData:
@@ -256,7 +261,7 @@ class ThrowingKnife extends ItemData:
 		AssignImage()
 	func on_use(item : Item) -> void:
 		Event.dropitem.emit(item.state.whichhand)
-		item.apply_impulse(item.player.get_facing() * -20.0 + Vector3(0, 2.0, 0))
+		item.apply_impulse(item.player.get_facing() * -30.0 + Vector3(0, 2.0, 0))
 		local = 1.0
 	func on_process(delta : float, item : Item) -> void:
 		var collisions = item.get_colliding_bodies()
@@ -266,6 +271,24 @@ class ThrowingKnife extends ItemData:
 				Event.damage.emit(item.global_position, 3.5, dmg, true)
 				local = -1.0
 	
+class MultiKnife extends ItemData:
+	func _init() -> void:
+		name = "multi knife"
+		local = -1.0
+		AssignImage()
+	func on_use(item : Item) -> void:
+		Event.dropitem.emit(item.state.whichhand)
+		item.apply_impulse(item.player.get_facing() * -30.0 + Vector3(0, 2.0, 0))
+		local = 1.0
+	func on_process(delta : float, item : Item) -> void:
+		var collisions = item.get_colliding_bodies()
+		item.immune = true
+		if local > 0.0:
+			if collisions.size() > 0:
+				var dmg = max(.2 * item.linear_velocity.length(), 13.0)
+				Event.damage.emit(item.global_position, 5.0, dmg, true)
+				local = -1.0
+				
 class Bomb extends ItemData:
 	func _init() -> void:
 		name = "bomb"
@@ -304,6 +327,21 @@ class Flight extends ItemData:
 		item.dissolve = local + 1.0
 		local += delta
 		
+class Butter extends ItemData:
+	func _init() -> void:
+		name = "butter"
+		AssignImage()
+	func on_use(item : Item) -> void:
+		if local > -.2:
+			item.player.velocity += Vector3(0, 100.0, 0)
+			local = -1.0
+		else:
+			Event.play_sound(item.aud, "selectno.wav", .5, 1.0)
+	func on_process(delta : float, item : Item) -> void:
+		item.immune = true
+		item.dissolve = local + 1.0
+		local += delta
+		
 class Ascent extends ItemData:
 	func _init() -> void:
 		name = "ascent"
@@ -316,8 +354,33 @@ class Ascent extends ItemData:
 	func on_process(delta : float, item : Item) -> void:
 		return
 			
+class Truth extends ItemData:
+	func _init() -> void:
+		name = "truth"
+		AssignImage()
+	func on_use(item : Item) -> void:
+		var col : int = 0
+		for b : bool in Event.collection_status:
+			if b:
+				col += 1
+		if col >= 5:
+			item.interactable = false
+			Event.gameended = true
+		else:
+			Event.play_sound(item.aud, "selectno.wav", .5, 1.0)
+	func on_process(delta : float, item : Item) -> void:
+		return
 			
-			
+class Secret extends ItemData:
+	func _init() -> void:
+		name = "secret"
+		AssignImage()
+	func on_use(item : Item) -> void:
+		item.hp = -.1
+	func on_death(item : Item) -> bool:
+		Event.play_sound(item.aud, "bigget.mp3", .5, 3.0)
+		Event.secrets += 1
+		return true
 			
 class Stenemy extends ItemData:
 	var dialouge : Array = [
@@ -329,6 +392,32 @@ class Stenemy extends ItemData:
 	var dialougeindex : int = 0
 	func _init() -> void:
 		name = "stenemy"
+		sizeoverride = Vector3(1.0, 3.0, 1.0)
+		AssignImage()
+	func on_use(item : Item) -> void:
+		return
+	func on_process(delta : float, item : Item) -> void:
+		if item.state is not EntityNeutral and item.state is not EntityAggresive:
+			item.state = EntityNeutral.new(item)
+		super(delta, item)
+					
+	func on_interact(item : Item) -> void:
+		if dialougeindex >= dialouge.size():
+			item.state = EntityAggresive.new(item)
+			dialougeindex = 0
+		name = dialouge[dialougeindex]
+		dialougeindex += 1
+		
+class Crab extends ItemData:
+	var dialouge : Array = [
+		"YOU CAN TASTE IT.",
+		"IT COMES FROM CONSUMPTION.",
+		"THE GREED. THE PLAGUE.\nITS ALL THE STOMACH.",
+		"ITS PROVEN."
+		]
+	var dialougeindex : int = 0
+	func _init() -> void:
+		name = "crab"
 		sizeoverride = Vector3(1.0, 3.0, 1.0)
 		AssignImage()
 	func on_use(item : Item) -> void:
@@ -389,14 +478,67 @@ class Killer extends ItemData:
 			item.state = EntityNeutral.new(item)
 			
 		var dist : float = item.global_position.distance_to(item.player.global_position)
-		if dist < 10.0:
+		if dist < 20.0:
 			item.state = EntityAggresive.new(item)
 		super(delta, item)
 		
 	func on_interact(item : Item) -> void:
 		return
 		
+class Killer2 extends ItemData:
+	func _init() -> void:
+		name = "soldier"
+		sizeoverride = Vector3(1, 3.0, 1)
+		AssignImage()
+	func on_use(item : Item) -> void:
+		return
+	func on_process(delta : float, item : Item) -> void:
+		if item.hp < item.maxhp:
+			item.hp += .2
+		if item.state is not EntityNeutral and item.state is not EntityAggresive:
+			item.state = EntityNeutral.new(item)
 			
+		var dist : float = item.global_position.distance_to(item.player.global_position)
+		if dist < 20.0:
+			item.state = EntityAggresive.new(item)
+		super(delta, item)
+		
+	func on_interact(item : Item) -> void:
+		return
+		
+class Wall extends ItemData:
+	var dialouge : Array = [
+		"YOU ARE BEING CONTROLLED BY IT.",
+		"THE THOUGHTS ARE CORRUPT.",
+		"IT LEADS THE REST OF THE BODY.",
+		"THE TUMOR IS ROOTED IN THE BRAIN.",
+		"IT COULDNT BE MORE CLEAR.",
+		]
+	var dialougeindex : int = 0
+	func _init() -> void:
+		name = "wall"
+		sizeoverride = Vector3(3.0, 3.0, 3.0)
+		AssignImage()
+	func on_use(item : Item) -> void:
+		return
+	func on_process(delta : float, item : Item) -> void:
+		if item.state is not EntityNeutral:
+			item.state = EntityNeutral.new(item)
+		if item.hp < item.maxhp:
+			item.hp += .5
+		
+		item.linear_velocity = Vector3(0, 0, 0)
+		item.position = Vector3(28, -20, 38.45)
+		var dist : float = item.global_position.distance_to(item.player.global_position)
+		if dist < 5.0:
+			Event.launch.emit(item.global_position, 7.0, 40.0, false)
+	func on_interact(item : Item) -> void:
+		if dialougeindex >= dialouge.size():
+			item.state = EntityAggresive.new(item)
+			dialougeindex = 0
+		name = dialouge[dialougeindex]
+		dialougeindex += 1
+		return
 			
 			
 			
