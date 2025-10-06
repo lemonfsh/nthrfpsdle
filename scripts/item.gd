@@ -332,11 +332,9 @@ class Butter extends ItemData:
 		name = "butter"
 		AssignImage()
 	func on_use(item : Item) -> void:
-		if local > -.2:
-			item.player.velocity += Vector3(0, 100.0, 0)
-			local = -1.0
-		else:
-			Event.play_sound(item.aud, "selectno.wav", .5, 1.0)
+		var real = clampf(local + 1.0, 0.0, 1.0)
+		item.player.velocity += Vector3(0, 100.0 * real , 0)
+		local = -1.0
 	func on_process(delta : float, item : Item) -> void:
 		item.immune = true
 		item.dissolve = local + 1.0
@@ -363,12 +361,14 @@ class Truth extends ItemData:
 		for b : bool in Event.collection_status:
 			if b:
 				col += 1
-		if col >= 5:
+		if col >= 5 and !Event.gameended:
 			item.interactable = false
 			Event.gameended = true
+			Event.play_sound(item.aud, "win.mp3", .6, 1.0)
 		else:
 			Event.play_sound(item.aud, "selectno.wav", .5, 1.0)
 	func on_process(delta : float, item : Item) -> void:
+		item.immune = false
 		return
 			
 class Secret extends ItemData:
@@ -494,7 +494,7 @@ class Killer2 extends ItemData:
 		return
 	func on_process(delta : float, item : Item) -> void:
 		if item.hp < item.maxhp:
-			item.hp += .2
+			item.hp += .15
 		if item.state is not EntityNeutral and item.state is not EntityAggresive:
 			item.state = EntityNeutral.new(item)
 			
@@ -525,7 +525,7 @@ class Wall extends ItemData:
 		if item.state is not EntityNeutral:
 			item.state = EntityNeutral.new(item)
 		if item.hp < item.maxhp:
-			item.hp += .5
+			item.hp += .35
 		
 		item.linear_velocity = Vector3(0, 0, 0)
 		item.position = Vector3(28, -20, 38.45)

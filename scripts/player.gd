@@ -161,7 +161,8 @@ func _physics_process(delta: float) -> void:
 	tutorial.text = Event.tutorialtooltip
 	
 	if Event.gameended:
-		gameend.text = "TRUTH FOUND IN: " + str(Gtimer) + "\nSECRETS: " + str(Event.secrets)
+		var srr : String =  "%0.2f" % Gtimer
+		gameend.text = "TRUTH FOUND IN: " + srr + "\nSECRETS: " + str(Event.secrets) + "/7"
 
 func do_camera_tilt() -> void:
 	camerapivot.rotation.z = lerpf(camerapivot.rotation.z, inputdir.x * -.03, .2)

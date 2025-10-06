@@ -2,8 +2,8 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dvxey2r3xbwnq"
-path.s3tc="res://.godot/imported/tile5.png-ab88e1299ad80ba60505e99ee3258693.s3tc.ctex"
+uid="uid://4codijfwi50k"
+path.s3tc="res://.godot/imported/fleshy.png-0a9ea75e832f5d330d02548dad02ed49.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
 "vram_texture": true
@@ -11,8 +11,8 @@ metadata={
 
 [deps]
 
-source_file="res://textures/tile5.png"
-dest_files=["res://.godot/imported/tile5.png-ab88e1299ad80ba60505e99ee3258693.s3tc.ctex"]
+source_file="res://textures/fleshy.png"
+dest_files=["res://.godot/imported/fleshy.png-0a9ea75e832f5d330d02548dad02ed49.s3tc.ctex"]
 
 [params]
 
