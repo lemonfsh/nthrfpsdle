@@ -642,6 +642,11 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -32.725075, -23.750248, 30.11
 script = ExtResource("3_4rxrm")
 itemDataAsString = "Ascent"
 
+[node name="spawner2" type="Node3D" parent="map"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 57.577892, -23.364685, 89.08912)
+script = ExtResource("3_4rxrm")
+itemDataAsString = "Ascent"
+
 [node name="TBLoader" type="TBLoader" parent="."]
 map_resource = "res://unnamed.map"
 option_filter_nearest = true

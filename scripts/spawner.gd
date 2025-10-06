@@ -29,7 +29,6 @@ func _physics_process(delta: float) -> void:
 			map.add_child(part)
 			part.global_position = global_position
 	
-	
 
 
 

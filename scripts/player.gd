@@ -155,14 +155,18 @@ func _physics_process(delta: float) -> void:
 	held_items()
 	handle_health_and_death(delta)
 	
-	if global_position.y < -100.0:
-		hp -= .05
+	
 		
+	if Fpressed > 0.0:
+		hp = -2
 	tutorial.text = Event.tutorialtooltip
 	
 	if Event.gameended:
-		var srr : String =  "%0.2f" % Gtimer
+		var srr : String =  str(int(Gtimer * 100.0) / 100.0)
 		gameend.text = "TRUTH FOUND IN: " + srr + "\nSECRETS: " + str(Event.secrets) + "/7"
+		
+	if global_position.y < -100.0:
+		hp -= .05
 
 func do_camera_tilt() -> void:
 	camerapivot.rotation.z = lerpf(camerapivot.rotation.z, inputdir.x * -.03, .2)
@@ -360,7 +364,7 @@ func handle_health_and_death(delta : float) -> void:
 		dying = -.1
 		
 	if dying < -1.0:
-		Event.collection_status = [false, false, false, false]
+		Event.collection_status = [false, false, false, false, false]
 		Event.tutorialtooltip = ""
 		Event.gameended = false
 		Event.secrets = 0

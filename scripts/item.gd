@@ -319,6 +319,7 @@ class Flight extends ItemData:
 	func on_use(item : Item) -> void:
 		if local > 0.0:
 			item.player.velocity += Vector3(0, 60.0, 0)
+			
 			local = -1.0
 		else:
 			Event.play_sound(item.aud, "selectno.wav", .5, 1.0)
@@ -334,6 +335,7 @@ class Butter extends ItemData:
 	func on_use(item : Item) -> void:
 		var real = clampf(local + 1.0, 0.0, 1.0)
 		item.player.velocity += Vector3(0, 100.0 * real , 0)
+		item.player.velocity += item.player.get_facing() * -40.0 * real
 		local = -1.0
 	func on_process(delta : float, item : Item) -> void:
 		item.immune = true
@@ -368,7 +370,7 @@ class Truth extends ItemData:
 		else:
 			Event.play_sound(item.aud, "selectno.wav", .5, 1.0)
 	func on_process(delta : float, item : Item) -> void:
-		item.immune = false
+		item.immune = true
 		return
 			
 class Secret extends ItemData:
