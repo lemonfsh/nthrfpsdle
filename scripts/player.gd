@@ -29,6 +29,8 @@ var sens : Vector2 = Vector2(1.0, 1.0)
 
 
 func _ready() -> void:
+	var r := RandomNumberGenerator.new()
+	Event.order = Event.chars[r.randi() % Event.chars.length()] + Event.chars[r.randi() % Event.chars.length()]
 	DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_MAXIMIZED)
 	wall_min_slide_angle = .01
 	
@@ -82,8 +84,7 @@ func boolinputasbuffer(b : bool, bf : float, delta : float) -> float:
 	
 var Gtimer : float = 0.0
 func _physics_process(delta: float) -> void:
-	if !Event.gameended:
-		Gtimer += delta
+	Gtimer += delta
 	
 	take_input(delta)
 	
@@ -115,7 +116,6 @@ func _physics_process(delta: float) -> void:
 	friction = min(friction, 1.0)
 	v *= friction
 	
-	
 	jumptimer -= delta;
 	if Input.get_action_strength("space") > 0.0 and jumptimer < 0.0 and is_on_floor():
 		v.y += jumpforce
@@ -143,8 +143,8 @@ func _physics_process(delta: float) -> void:
 			Event.play_sound(aud, "jump.wav", .1, 3.0)
 			
 	
-	debugtext.text = "%0.2f" % sqrt( pow(velocity.x, 2) + pow(velocity.z, 2) ) + "\n" + str(Engine.get_frames_per_second())
-	debugtext.text = ""
+	#debugtext.text = "%0.2f" % sqrt( pow(velocity.x, 2) + pow(velocity.z, 2) ) + "\n" + str(Engine.get_frames_per_second())
+	#debugtext.text = "" + str(Engine.get_frames_per_second())
 	pstate.PhysUpdate(self)
 	pstate.AnimateHands(self)
 	var lerpvalue = .04
@@ -161,15 +161,37 @@ func _physics_process(delta: float) -> void:
 		hp = -2
 	tutorial.text = Event.tutorialtooltip
 	
-	if Event.gameended:
-		var srr : String =  str(int(Gtimer * 100.0) / 100.0)
-		gameend.text = "TRUTH FOUND IN: " + srr + "\nSECRETS: " + str(Event.secrets) + "/7"
-		
 	if global_position.y < -100.0:
 		hp -= .05
 
 func do_camera_tilt() -> void:
 	camerapivot.rotation.z = lerpf(camerapivot.rotation.z, inputdir.x * -.03, .2)
+	
+
+@onready var ongameend_connect = Event.endgame.connect(ongameend)
+func ongameend() -> void:
+	print("did")
+	
+	var realtimer : float = int(Gtimer * 100.0) / 100.0
+	var srr : String =  str(realtimer)
+	srr = "!" + Event.order + "! HAS FOUND THE TRUTH IN: " + srr + "\nWITH " + str(Event.secrets) + "/7 SECRETS"
+	gameend.text = srr + "\nUPDATING LEADERBOARD..."
+	await Event.submit("shouldnotbreal", realtimer)
+	var entries : Array[TaloLeaderboardEntry] = await Event.readLB()
+	var lbstr : String = ""
+	var maxentries : int = 0
+	for e in entries:
+		maxentries += 1
+		if maxentries > 20:
+			break
+		if e.player_alias.identifier == Event.order:
+			lbstr += "YOU #" + str(e.position + 1) + " " + e.player_alias.identifier + " : " + str(e.score) + "\n"
+		else:
+			lbstr += "#" + str(e.position + 1) + " " + e.player_alias.identifier + " : " + str(e.score) + "\n"
+	
+	srr += "\n\nBEST TIMES:\n" + lbstr
+	gameend.text = srr
+	
 	
 var LHitem : Item
 var RHitem : Item
@@ -183,17 +205,21 @@ var RHitem : Item
 
 func interact_items() -> void:
 	
-	if Qpressed >= 1.0 and LHitem:
+	if Qpressed >= 0.0 and LHitem:
 		Event.dropitem.emit(-1.0)
+		Qpressed = -.1
 		return
-	if Epressed >= 1.0 and RHitem:
+	if Epressed >= 0.0 and RHitem:
 		Event.dropitem.emit(1.0)
+		Epressed = -.1
 		return
 			
-	if lmbpressed >= 1.0:
+	if lmbpressed >= 0.0:
 		Event.useitem.emit(-1.0)
-	if rmbpressed >= 1.0:
+		lmbpressed = -.1
+	if rmbpressed >= 0.0:
 		Event.useitem.emit(1.0)
+		rmbpressed = -.1
 		
 	var result = cameraraycast(8)
 	var col = result.get("collider")
@@ -211,15 +237,17 @@ func interact_items() -> void:
 			inspect.global_position = lerp(topleft.global_position, bottomleft.global_position, .5)
 			
 			if colasitem.state is Item.Neutral and Event.tutorialdone > 0:
-				Event.tutorialtooltip = "Q - E to pickup / drop"
+				Event.tutorialtooltip = "Q or E to pickup / drop"
 			if colasitem.state is Item.EntityNeutral and Event.tutorialdone > 0:
-				Event.tutorialtooltip = "Q - E to talk"
+				Event.tutorialtooltip = "Q or E to talk"
 			
-			if Qpressed >= 1.0 and !LHitem:
+			if Qpressed >= 0.0 and !LHitem:
 				colasitem.pickup_me(-1.0, colasitem.global_position)
+				Qpressed = -.1
 				return
-			if Epressed >= 1.0 and !RHitem:
+			if Epressed >= 0.0 and !RHitem:
 				colasitem.pickup_me(1.0, colasitem.global_position)
+				Epressed = -.1
 				return
 			return
 	var outofview : Vector3 = Vector3(0, 99, 0)
@@ -231,7 +259,7 @@ func interact_items() -> void:
 	inspect.text = ""
 	
 	if (RHitem or LHitem) and Event.tutorialdone > 0:
-		Event.tutorialtooltip = "Left Click / Right Click to USE item"
+		Event.tutorialtooltip = "LMB or RMB to USE item"
 		return
 	Event.tutorialtooltip = ""
 
@@ -350,9 +378,8 @@ func handle_health_and_death(delta : float) -> void:
 	for b : bool in Event.collection_status:
 		if b:
 			col += 1
-	if col >= 5:
-		sinvalue *= 6.0
-	
+	if col >= 5 and !Event.gameended:
+		sinvalue *= 3.0
 	
 	
 	var realvalue : float = (1.0 - hp / 10.0) + sinvalue
@@ -364,11 +391,7 @@ func handle_health_and_death(delta : float) -> void:
 		dying = -.1
 		
 	if dying < -1.0:
-		Event.collection_status = [false, false, false, false, false]
-		Event.tutorialtooltip = ""
-		Event.gameended = false
-		Event.secrets = 0
-		get_tree().change_scene_to_file("res://entities/map.tscn")
+		Event.resetGame()
 		
 	
 @onready var launch_me_connect = Event.launch.connect(launch_me)
@@ -385,12 +408,15 @@ func launch_me(pos : Vector3, ramge : float, strength : float, playerimmune : bo
 		
 	
 @onready var damage_me_connect = Event.damage.connect(damage_me)
-func damage_me(pos : Vector3, ramge : float, value : float, playerimmune : bool):
-	if playerimmune:
+func damage_me(pos : Vector3, ramge : float, value : float, source : String):
+	var dmgvalue := value
+	if source == "throwing knife" || source == "multi knife":
 		return
+	if source == "bomb":
+		dmgvalue *= .2
 	var dist : float = pos.distance_to(global_position)
 	if dist < ramge:
-		hp -= value
+		hp -= dmgvalue
 		Event.play_sound(aud, "hurt1.mp3", .2, 1.0)
 		Event.damageeffect(global_position, self)
 	

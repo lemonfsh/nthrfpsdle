@@ -119,7 +119,7 @@ func launch_me(pos : Vector3, ramge : float, strength : float, playerimmune : bo
 			Event.play_sound(aud, "jump.wav", .1, 3.0)
 
 @onready var damage_me_connect = Event.damage.connect(damage_me)
-func damage_me(pos : Vector3, ramge : float, value : float, playerimmune : bool):
+func damage_me(pos : Vector3, ramge : float, value : float, source : String):
 	var dist : float = pos.distance_to(global_position)
 	if dist < ramge and dist > .01:
 		hp -= value
@@ -182,6 +182,7 @@ class Collected extends ItemState:
 		else:
 			Event.play_sound(item.aud, "bigget.mp3", .5, 1.0)
 		Event.collection_status[collected] = true
+		Event.order += Event.toorderchar(item.itemdata.name)
 		item.collection[collected].add_child(item)
 		item.sprite3d.set_layer_mask_value(2, true)
 		item.sprite3d.set_layer_mask_value(1, false)
@@ -213,7 +214,7 @@ class EntityAggresive extends ItemState:
 		var dist : float = item.global_position.distance_to(item.player.global_position)
 		if dist < (1.5 + item.itemdata.sizeoverride.x) and local > 0.0:
 			local = -.5
-			Event.damage.emit(item.global_position, 3.5, 3.5, false)
+			Event.damage.emit(item.global_position, 3.5, 3.5, "enemy")
 			Event.launch.emit(item.global_position, 5.0, 15.0, false)
 		
 func create_instance(script_path: String, classname: String) -> Object:
@@ -268,7 +269,7 @@ class ThrowingKnife extends ItemData:
 		if local > 0.0:
 			if collisions.size() > 0:
 				var dmg = max(.2 * item.linear_velocity.length(), 3.5)
-				Event.damage.emit(item.global_position, 3.5, dmg, true)
+				Event.damage.emit(item.global_position, 3.5, dmg, name)
 				local = -1.0
 	
 class MultiKnife extends ItemData:
@@ -286,7 +287,7 @@ class MultiKnife extends ItemData:
 		if local > 0.0:
 			if collisions.size() > 0:
 				var dmg = max(.2 * item.linear_velocity.length(), 13.0)
-				Event.damage.emit(item.global_position, 5.0, dmg, true)
+				Event.damage.emit(item.global_position, 5.0, dmg, name)
 				local = -1.0
 				
 class Bomb extends ItemData:
@@ -295,11 +296,12 @@ class Bomb extends ItemData:
 		AssignImage()
 	func on_use(item : Item) -> void:
 		Event.dropitem.emit(item.state.whichhand)
+		item.apply_impulse(item.player.get_facing() * -50.0 + Vector3(0, 2.0, 0))
 		item.interactable = false
 		item.hp = -.1
 	func on_death(item : Item) -> bool:
-		Event.launch.emit(item.global_position, 20.0, 30.0, false)
-		Event.damage.emit(item.global_position, 5.0, 5.0, false)
+		Event.launch.emit(item.global_position, 20.0, 70.0, false)
+		Event.damage.emit(item.global_position, 5.0, 13.0, name)
 		return true
 			
 class Food extends ItemData:
@@ -366,6 +368,7 @@ class Truth extends ItemData:
 		if col >= 5 and !Event.gameended:
 			item.interactable = false
 			Event.gameended = true
+			Event.endgame.emit()
 			Event.play_sound(item.aud, "win.mp3", .6, 1.0)
 		else:
 			Event.play_sound(item.aud, "selectno.wav", .5, 1.0)
@@ -612,6 +615,6 @@ class Skinn extends ItemData:
 		AssignImage()
 	func on_use(item : Item) -> void:
 		collectable_eat_use(item)
-		Event.damage.emit(item.player.global_position, 1.0, 2.0, false)
+		Event.damage.emit(item.player.global_position, 1.0, 2.0, name)
 	func on_death(item : Item) -> bool:
 		return collectable_eat_death(item)
